@@ -1,0 +1,5 @@
+
+const x = function(a, b, c, d...) {
+    
+}
+

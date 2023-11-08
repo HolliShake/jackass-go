@@ -4,18 +4,24 @@ import (
 )
 
 const (
+	MAX_MEMBER_ACCESS int 50
+	MAX_INDEXING int 50
+	MAX_CALL int 50
 	MAX_EXPRESSION_NESTING int = 100
 )
 
 type parser_t struct {
 	lexer lexer_t
 	lookahead, previous *token_t
-	expressionLevel int
+	memberAccess, indexingLevel, callLevel, expressionLevel int
 }
 
 func Parser(lexer lexer_t) parser_t {
 	return parser_t {
 		lexer: lexer,
+		memberAccess: 0,
+		indexingLevel: 0,
+		callLevel: 0,
 		expressionLevel: 0,
 	}
 }
@@ -42,7 +48,7 @@ func (p *parser_t) checkV(value string) bool {
 	return p.lookahead.value == value
 }
 
-// checkS checks lookahead symbol
+// checkS checks lookahead symbol/
 // @param symbol string
 // @returns bool
 func (p *parser_t) checkS(symbol string) bool {
@@ -183,10 +189,66 @@ func (p *parser_t) parseTerminal() *node_t {
 				)
 				p.acceptT(TKIND_KEYWORD)
 				return node
+			} else if p.checkK("self") {
+				panic("Not implemented self!!!")
+			} else if p.checkK("super") {
+				panic("Not implemented super!!!")
 			}
 	}
 
 	return nil
+}
+
+func (p *parser_t) parseGroup() *node_t {
+	return nil
+}
+
+func (p *parser_t) parseMemberOrCall() *node_t {
+	node := p.parseGroup()
+
+	if node == nil {
+		return node
+	}
+
+	// member
+	tmp0 := p.memberAccess
+	// indexing
+	tmp1 := p.indexingLevel
+	// call level
+	tmp2 := p.callLevel
+
+	for p.checkS(".") || p.checkS("[") || p.checkS("(") {
+		if p.checkS(".") {
+			// (. TKIND_ID)
+			p.acceptS(".")
+
+			member := p.lookahead.value
+			p.acceptT(TKIND_ID)
+
+			node = 
+		} else if p.checkS("[") {
+			// '[' mandatoryExpression ']'
+			p.acceptS("[")
+			expr := p.parseMandatoryExpression()
+			p.acceptS("]")
+
+			node = 
+		} else if p.checkS("(") {
+			// '(' mandatoryExpression ')'
+			p.acceptS("(")
+
+			p.acceptS(")")
+
+			node =
+		}
+	}
+
+	// restore
+	p.memberAccess = tmp0
+	p.indexingLevel = tmp1
+	p.callLevel = tmp2
+
+	return node
 }
 
 func (p *parser_t) parseMul() *node_t {
