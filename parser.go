@@ -101,6 +101,91 @@ func (p *parser_t) acceptK(keyword string) {
 }
 
 func (p *parser_t) parseTerminal() *node_t {
+	switch p.lookahead.kind {
+		case TKIND_ID:
+			node := TerminalNode(
+				NT_ID, 
+				p.lookahead.value, 
+				p.lookahead.position,
+			)
+			p.acceptT(TKIND_KEYWORD)
+			return node
+		case TKIND_INTEGER:
+			node := TerminalNode(
+				NT_INTEGER, 
+				p.lookahead.value, 
+				p.lookahead.position,
+			)
+			p.acceptT(TKIND_INTEGER)
+			return node
+		case TKIND_BIG_INTEGER:
+			node := TerminalNode(
+				NT_BIG_INTEGER, 
+				p.lookahead.value, 
+				p.lookahead.position,
+			)
+			p.acceptT(TKIND_BIG_INTEGER)
+			return node
+		case TKIND_OTHER_INTEGER:
+			node := TerminalNode(
+				NT_OTHER_INTEGER, 
+				p.lookahead.value, 
+				p.lookahead.position,
+			)
+			p.acceptT(TKIND_OTHER_INTEGER)
+			return node
+		case TKIND_OTHER_BIG_INTEGER:
+			node := TerminalNode(
+				NT_OTHER_BIG_INTEGER, 
+				p.lookahead.value, 
+				p.lookahead.position,
+			)
+			p.acceptT(TKIND_OTHER_BIG_INTEGER)
+			return node
+		case TKIND_FLOAT:
+			node := TerminalNode(
+				NT_FLOAT, 
+				p.lookahead.value, 
+				p.lookahead.position,
+			)
+			p.acceptT(TKIND_FLOAT)
+			return node
+		case TKIND_OTHER_FLOAT:
+			node := TerminalNode(
+				NT_OTHER_FLOAT, 
+				p.lookahead.value, 
+				p.lookahead.position,
+			)
+			p.acceptT(TKIND_OTHER_FLOAT)
+			return node
+		case TKIND_STRING:
+			node := TerminalNode(
+				NT_STRING, 
+				p.lookahead.value, 
+				p.lookahead.position,
+			)
+			p.acceptT(TKIND_STRING)
+			return node
+		case TKIND_KEYWORD: 
+			if p.checkK("true") || p.checkK("false") {
+				node := TerminalNode(
+					NT_BOOLEAN, 
+					p.lookahead.value, 
+					p.lookahead.position,
+				)
+				p.acceptT(TKIND_KEYWORD)
+				return node
+			} else if p.checkK("null") {
+				node := TerminalNode(
+					NT_NULL, 
+					p.lookahead.value, 
+					p.lookahead.position,
+				)
+				p.acceptT(TKIND_KEYWORD)
+				return node
+			}
+	}
+
 	return nil
 }
 

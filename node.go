@@ -3,9 +3,18 @@ package main
 type NodeType = int
 
 const (
-	NT_INTEGER NodeType = 0
-	NT_BINARY_EXPRESSION NodeType = 1
-	NT_LOGICAL_EXPRESSION NodeType = 2
+	NT_ID NodeType = 0
+	NT_INTEGER NodeType = 1
+	NT_BIG_INTEGER NodeType = 2
+	NT_OTHER_INTEGER NodeType = 3
+	NT_OTHER_BIG_INTEGER NodeType = 4
+	NT_FLOAT NodeType = 5
+	NT_OTHER_FLOAT NodeType = 6
+	NT_STRING NodeType = 7
+	NT_BOOLEAN NodeType = 8
+	NT_NULL NodeType = 9
+	NT_BINARY_EXPRESSION NodeType = 4
+	NT_LOGICAL_EXPRESSION NodeType = 5
 )
 
 type node_t struct {
