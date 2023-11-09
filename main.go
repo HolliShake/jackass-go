@@ -1,16 +1,8 @@
 package main
-import (
-	"fmt"
-	"os"
-)
-
+import "fmt"
 
 func main() {
-	// Arguments
-	args := os.Args[1:]
-	fmt.Println(args)
-
-	// Create a new lexer
-	lexer := Lexer("main.js", "+=")
-	fmt.Println(lexer.nextToken())
+	jackAss := JackAss()
+	jackAss.execute("./tests/test.j4")
+	fmt.Println("Done!")
 }

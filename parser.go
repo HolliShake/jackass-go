@@ -26,8 +26,6 @@ func Parser(lexer *lexer_t) *parser_t {
 	}
 
 	parser.lexer = lexer
-	parser.lookahead = lexer.nextToken()
-	parser.previous = parser.lookahead
 	parser.memberAccess = 0
 	parser.indexingLevel = 0
 	parser.callLevel = 0
@@ -274,7 +272,7 @@ func (p *parser_t) parseGroup() *node_t {
 		return expr
 	}
 
-	return nil
+	return p.parseTerminal()
 }
 
 func (p *parser_t) parseMemberOrCall() *node_t {
@@ -415,7 +413,7 @@ func (p *parser_t) parseUnary() *node_t {
 func (p *parser_t) parseMul() *node_t {
 	node := p.parseUnary()
 
-	if (node == nil) { 
+	if node == nil { 
 		return node
 	}
 
@@ -446,7 +444,7 @@ func (p *parser_t) parseMul() *node_t {
 func (p *parser_t) parseAdd() *node_t {
 	node := p.parseMul()
 
-	if (node == nil) { 
+	if node == nil { 
 		return node
 	}
 
@@ -709,12 +707,10 @@ func (p *parser_t) parseMandatoryExpression() *node_t {
 // 
 
 func (p *parser_t) parseFile() *node_t {
-	return nil
+	return p.parseZeroOrOneExpression()
 }
 
 func (p *parser_t) parse() *node_t {
-	p.lookahead = p.lexer.nextToken()
-	p.previous = p.lookahead
-
+	p.lookahead, p.previous = p.lexer.nextToken(), p.lookahead
 	return p.parseFile()
 }

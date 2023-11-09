@@ -9,16 +9,18 @@ const MAX_ID_LENGTH int = 255
 
 type lexer_t struct {
 	filePath, fileContent string
+	fileLen, index int
 	lookahead rune
-	index, line, column int
+	line, column int
 }
 
 func Lexer(filePath, fileContent string) *lexer_t {
 	lexer := new(lexer_t)
 	lexer.filePath = filePath
 	lexer.fileContent = fileContent
-	lexer.lookahead = lexer.nextRune()
+	lexer.fileLen = len(fileContent)
 	lexer.index = 0
+	lexer.lookahead = lexer.nextRune()
 	lexer.line = 1
 	lexer.column = 1
 	return lexer
@@ -33,9 +35,13 @@ func (l *lexer_t) getFileCode() string {
 }
 
 func (l *lexer_t) nextRune() rune {
+	if l.fileLen <= 0 {
+		return rune(0)
+	}
+
 	size := utf_sizeOfUtf(int(l.fileContent[l.index]))
 
-	if (l.index + size) > len(l.fileContent) {
+	if (l.index + (size - 1)) >= l.fileLen {
 		return rune(l.fileContent[l.index])
 	}
 
@@ -127,7 +133,7 @@ func (l *lexer_t) isString() bool {
 }
 
 func (l *lexer_t) isEof() bool {
-	return l.index >= len(l.fileContent)
+	return l.index >= l.fileLen
 }
 
 func (l *lexer_t) skipWhiteSpace() {
