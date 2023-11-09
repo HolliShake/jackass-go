@@ -7,6 +7,11 @@ import (
 	"os"
 )
 
+func basicError(message string) {
+	fmt.Fprintf(os.Stderr, "%s\n", message)
+	os.Exit(0xffffffff)
+}
+
 func raiseError[T istep](step T, message string, position *position_t) {
 	var error string = ""
 	var padding, start, end int = 3, 0, 0

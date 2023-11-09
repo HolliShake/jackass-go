@@ -13,18 +13,14 @@ type lexer_t struct {
 	index, line, column int
 }
 
-func Lexer(filePath, fileContent string) lexer_t {
-	lexer := lexer_t {
-		filePath: filePath,
-		fileContent: fileContent,
-		lookahead: 0,
-		index: 0,
-		line: 1,
-		column: 1,
-	}
-
+func Lexer(filePath, fileContent string) *lexer_t {
+	lexer := new(lexer_t)
+	lexer.filePath = filePath
+	lexer.fileContent = fileContent
 	lexer.lookahead = lexer.nextRune()
-
+	lexer.index = 0
+	lexer.line = 1
+	lexer.column = 1
 	return lexer
 }
 

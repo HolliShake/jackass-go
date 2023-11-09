@@ -4,26 +4,35 @@ import (
 )
 
 const (
-	MAX_MEMBER_ACCESS int 50
-	MAX_INDEXING int 50
-	MAX_CALL int 50
+	MAX_MEMBER_ACCESS int = 50
+	MAX_INDEXING int = 50
+	MAX_CALL int = 50
 	MAX_EXPRESSION_NESTING int = 100
+	// 
+	MAX_ARGS int = 255
 )
 
 type parser_t struct {
-	lexer lexer_t
+	lexer *lexer_t
 	lookahead, previous *token_t
 	memberAccess, indexingLevel, callLevel, expressionLevel int
 }
 
-func Parser(lexer lexer_t) parser_t {
-	return parser_t {
-		lexer: lexer,
-		memberAccess: 0,
-		indexingLevel: 0,
-		callLevel: 0,
-		expressionLevel: 0,
+func Parser(lexer *lexer_t) *parser_t {
+	parser := new(parser_t)
+
+	if parser == nil {
+		basicError("Out of memory!!!")
 	}
+
+	parser.lexer = lexer
+	parser.lookahead = lexer.nextToken()
+	parser.previous = parser.lookahead
+	parser.memberAccess = 0
+	parser.indexingLevel = 0
+	parser.callLevel = 0
+	parser.expressionLevel = 0
+	return parser
 }
 
 func (p *parser_t) getFilePath() string {
@@ -193,6 +202,8 @@ func (p *parser_t) parseTerminal() *node_t {
 				panic("Not implemented self!!!")
 			} else if p.checkK("super") {
 				panic("Not implemented super!!!")
+			} else if p.checkK("function") {
+				panic("Not implemented function!!!")
 			}
 	}
 
@@ -200,6 +211,69 @@ func (p *parser_t) parseTerminal() *node_t {
 }
 
 func (p *parser_t) parseGroup() *node_t {
+	if p.checkS("[") { 
+		// '[' zeroOrOneExpression (',' mandatoryExpression)+ ']'
+		start := p.lookahead.position
+		p.acceptS("[")
+
+		var elements *[]*node_t = new([]*node_t)
+
+		elementN := p.parseZeroOrOneExpression()
+		if elementN != nil {
+			*elements = append(*elements, elementN)
+
+			for p.checkS(",") {
+				p.acceptS(",")
+				elementN = p.parseMandatoryExpression()
+				*elements = append(*elements, elementN)
+			}
+		}
+
+		p.acceptS("]")
+		end := p.previous.position
+
+		return ArrayNode(elements, start.merge(end))
+
+	} else if p.checkS("{") {
+		// '{' (zeroOrOneExpression ':' mandatoryExpression)? (',' zeroOrOneExpression ':' mandatoryExpression)+ '}'
+		start := p.lookahead.position
+		p.acceptS("{")
+
+		var pairs *[][]*node_t = new([][]*node_t)
+
+		keyN := p.parseZeroOrOneExpression()
+		if keyN != nil {
+			p.acceptS(":")
+			valueN := p.parseMandatoryExpression()
+			*pairs = append(*pairs, []*node_t{keyN, valueN})
+
+			for p.checkS(",") {
+				p.acceptS(",")
+				keyN = p.parseZeroOrOneExpression()
+				if keyN == nil {
+					raiseError(p, fmt.Sprintf("missing key after \",\"."), p.lookahead.position)
+				}
+
+				p.acceptS(":")
+				valueN = p.parseMandatoryExpression()
+				*pairs = append(*pairs, []*node_t{keyN, valueN})
+			}
+		}
+
+		p.acceptS("}")
+		end := p.previous.position
+
+		return ObjectNode(pairs, start.merge(end))
+
+	} else if p.checkS("(") {
+		// '(' mandatoryExpression ')'
+		p.acceptS("(")
+		expr := p.parseMandatoryExpression()
+		p.acceptS(")")
+
+		return expr
+	}
+
 	return nil
 }
 
@@ -219,40 +293,127 @@ func (p *parser_t) parseMemberOrCall() *node_t {
 
 	for p.checkS(".") || p.checkS("[") || p.checkS("(") {
 		if p.checkS(".") {
+			p.memberAccess += 1
+			if p.memberAccess > MAX_MEMBER_ACCESS {
+				raiseError(p, fmt.Sprintf("member access nesting level too deep."), node.position.merge(p.previous.position))
+			}
+
 			// (. TKIND_ID)
 			p.acceptS(".")
 
 			member := p.lookahead.value
 			p.acceptT(TKIND_ID)
 
-			node = 
+			node = MemberAccess(node, member, node.position.merge(p.previous.position))
 		} else if p.checkS("[") {
+			p.indexingLevel += 1
+			if p.indexingLevel > MAX_INDEXING {
+				raiseError(p, fmt.Sprintf("subscription nesting level too deep."), node.position.merge(p.previous.position))
+			}
+
 			// '[' mandatoryExpression ']'
 			p.acceptS("[")
 			expr := p.parseMandatoryExpression()
 			p.acceptS("]")
 
-			node = 
+			node = IndexAccess(node, expr, node.position.merge(p.previous.position))
 		} else if p.checkS("(") {
+			p.callLevel += 1
+			if p.callLevel > MAX_CALL {
+				raiseError(p, fmt.Sprintf("call nesting level too deep."), node.position.merge(p.previous.position))
+			}
+
 			// '(' mandatoryExpression ')'
 			p.acceptS("(")
 
+			var args *[]*node_t = new([]*node_t)
+
+			argN := p.parseZeroOrOneExpression()
+
+			if argN != nil {
+				argc := 1
+				*args = append(*args, argN)
+
+				for p.checkS(",") {
+					p.acceptS(",")
+					argN = p.parseMandatoryExpression()
+					*args = append(*args, argN)
+
+					argc += 1
+					if argc > MAX_ARGS {
+						raiseError(p, fmt.Sprintf("too many arguments, max 255 got %d.", argc), p.lookahead.position)
+					}
+				}
+			}
+
 			p.acceptS(")")
 
-			node =
+			node = Call(node, args, node.position.merge(p.previous.position))
 		}
 	}
 
-	// restore
+	// restore member access
 	p.memberAccess = tmp0
+	// restore indexing
 	p.indexingLevel = tmp1
+	// restore call level
 	p.callLevel = tmp2
 
 	return node
 }
 
+func (p *parser_t) parsePostfix() *node_t {
+	node := p.parseMemberOrCall()
+
+	if node == nil {
+		return node
+	}
+
+	if p.checkS("++") || p.checkS("--") {
+		operator := p.lookahead
+		p.acceptS(operator.value)
+
+		return PostfixExpressionNode(operator.value, node, node.position.merge(p.previous.position))
+	} else if p.checkS("?") {
+		p.acceptS("?")
+
+		trueval := p.parseZeroOrOneExpression()
+		if trueval == nil {
+			raiseError(p, fmt.Sprintf("missing true value after \"?\"."), p.lookahead.position)
+		}
+
+		p.acceptS(":")
+
+		falseval := p.parseZeroOrOneExpression()
+		if falseval == nil {
+			raiseError(p, fmt.Sprintf("missing false value after \":\"."), p.lookahead.position)
+		}
+		
+		return TernaryExpressionNode(node, trueval, falseval, node.position.merge(p.previous.position))
+	}
+
+	return node
+}
+
+func (p *parser_t) parseUnary() *node_t {
+	if p.checkS("+") || p.checkS("-") || p.checkS("!") || p.checkS("~") || p.checkS("++") || p.checkS("--") {
+		operator := p.lookahead
+		p.acceptS(operator.value)
+
+		// Watch recursion
+		operand := p.parseUnary()
+		if operand == nil {
+			raiseError(p, fmt.Sprintf("missing operand after \"%s\".", operator.value), operator.position)
+		}
+
+		return UnaryExpressionNode(operator.value, operand, operator.position.merge(p.previous.position))
+	} else {
+		return p.parsePostfix()
+	}
+}
+
 func (p *parser_t) parseMul() *node_t {
-	node := p.parseTerminal()
+	node := p.parseUnary()
 
 	if (node == nil) { 
 		return node
@@ -269,7 +430,7 @@ func (p *parser_t) parseMul() *node_t {
 		operator := p.lookahead
 		p.acceptS(operator.value)
 
-		rhs := p.parseTerminal()
+		rhs := p.parseUnary()
 
 		if rhs == nil { 
 			raiseError(p, fmt.Sprintf("missing right-hand expression after \"%s\".", p.previous.value), operator.position)
