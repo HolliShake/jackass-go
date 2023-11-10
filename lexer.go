@@ -361,16 +361,7 @@ func (l *lexer_t) nextSymbol() *token_t {
 	var pos *position_t = Position(l.line, l.column)
 
 	switch l.lookahead {
-		case '(':
-		case ')':
-		case '[':
-		case ']':
-		case '{':
-		case '}':
-		case '~':
-		case ':':
-		case ';':
-		case ',':
+		case '(', ')', '[', ']', '{', '}', '~', ':', ';', ',':
 			value += string(l.lookahead)
 			l.forward()
 			break
@@ -529,12 +520,14 @@ func (l *lexer_t) nextSymbol() *token_t {
 				l.forward()
 			}
 			break
-		default:
-			for !l.isEof() && !l.isWhiteSpace() {
-				value += string(l.lookahead)
-				l.forward()
-			}
-			raiseError(l, fmt.Sprintf("invalid symbol \"%s\".", value), pos)
+	}
+
+	if len(value) <= 0 {
+		for !l.isEof() && !l.isWhiteSpace() {
+			value += string(l.lookahead)
+			l.forward()
+		}
+		raiseError(l, fmt.Sprintf("invalid symbol \"%s\".", value), pos)
 	}
 
 	return Token(TKIND_SYMBOL, value, pos)
@@ -558,5 +551,13 @@ func (l *lexer_t) nextToken() *token_t {
 			return l.nextSymbol()
 		}
 	}
+	
 	return l.nextEof()
+}
+
+func (l *lexer_t) dump() {
+	for !l.isEof() {
+		tok := l.nextToken()
+		fmt.Printf("%s\n", tok.value)
+	}
 }

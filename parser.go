@@ -1,6 +1,7 @@
 package main
 import (
 	"fmt"
+	"strings"
 )
 
 const (
@@ -52,7 +53,7 @@ func (p *parser_t) checkT(tokenKind TokenKind) bool {
 // @param value string
 // @returns bool
 func (p *parser_t) checkV(value string) bool {
-	return p.lookahead.value == value
+	return strings.Compare(p.lookahead.value, value) == 0
 }
 
 // checkS checks lookahead symbol/
@@ -73,8 +74,7 @@ func (p *parser_t) checkK(keyword string) bool {
 // @param tokenKind TokenKind
 func (p *parser_t) acceptT(tokenKind TokenKind) {
 	if p.checkT(tokenKind) {
-		p.previous = p.lookahead
-		p.lookahead = p.lexer.nextToken()
+		p.previous, p.lookahead = p.lookahead, p.lexer.nextToken()
 	} else {
 		raiseError(p, fmt.Sprintf("unexpected token \"%s\".", p.lookahead.value), p.lookahead.position)
 	}
@@ -84,8 +84,7 @@ func (p *parser_t) acceptT(tokenKind TokenKind) {
 // @param value string
 func (p *parser_t) acceptV(value string) {
 	if p.checkV(value) {
-		p.previous = p.lookahead
-		p.lookahead = p.lexer.nextToken()
+		p.previous, p.lookahead = p.lookahead, p.lexer.nextToken()
 	} else {
 		raiseError(p, fmt.Sprintf("unexpected token \"%s\", Did you mean \"%s\"", p.lookahead.value, value), p.lookahead.position)
 	}
@@ -95,8 +94,7 @@ func (p *parser_t) acceptV(value string) {
 // @param symbol string
 func (p *parser_t) acceptS(symbol string) {
 	if p.checkS(symbol) {
-		p.previous = p.lookahead
-		p.lookahead = p.lexer.nextToken()
+		p.previous, p.lookahead = p.lookahead, p.lexer.nextToken()
 	} else {
 		raiseError(p, fmt.Sprintf("unexpected token \"%s\", Did you mean \"%s\"", p.lookahead.value, symbol), p.lookahead.position)
 	}
@@ -106,8 +104,7 @@ func (p *parser_t) acceptS(symbol string) {
 // @param keyword string
 func (p *parser_t) acceptK(keyword string) {
 	if p.checkK(keyword) {
-		p.previous = p.lookahead
-		p.lookahead = p.lexer.nextToken()
+		p.previous, p.lookahead = p.lookahead, p.lexer.nextToken()
 	} else {
 		raiseError(p, fmt.Sprintf("unexpected token \"%s\", Did you mean \"%s\"", p.lookahead.value, keyword), p.lookahead.position)
 	}
@@ -201,7 +198,61 @@ func (p *parser_t) parseTerminal() *node_t {
 			} else if p.checkK("super") {
 				panic("Not implemented super!!!")
 			} else if p.checkK("function") {
-				panic("Not implemented function!!!")
+				start := p.lookahead.position
+				p.acceptK("function")
+				p.acceptS("(")
+				
+
+				var parameters *[][]interface{} = new([][]interface{})
+
+				if p.checkT(TKIND_ID) {
+					param := p.lookahead.value
+					p.acceptT(TKIND_ID)
+
+					if p.checkS("...") {
+						// Variadic parameter
+						p.acceptS("...")
+						param = fmt.Sprintf("%s...", param)
+					}
+
+					*parameters = append(*parameters, []interface{}{param, p.previous.position})
+
+					for p.checkS(",") {
+						p.acceptS(",")
+
+						if !p.checkT(TKIND_ID) {
+							raiseError(p, fmt.Sprintf("missing parameter after \",\"."), p.lookahead.position)
+						}
+
+						param := p.lookahead.value
+						p.acceptT(TKIND_ID)
+
+						if p.checkS("...") {
+							// Variadic parameter
+							p.acceptS("...")
+							param = fmt.Sprintf("%s...", param)
+						}
+
+						*parameters = append(*parameters, []interface{}{param, p.previous.position})
+					}
+				}
+
+				p.acceptS(")")
+				p.acceptS("{")
+
+				var body *[]*node_t = new([]*node_t)
+
+				bodyN := p.parseCompoundStatement()
+
+				for bodyN != nil {
+					*body = append(*body, bodyN)
+					bodyN = p.parseCompoundStatement()
+				}
+
+				p.acceptS("}")
+				end := p.previous.position
+
+				return HeadlessFunctionNode(parameters, body, start.merge(end))
 			}
 	}
 
@@ -270,9 +321,9 @@ func (p *parser_t) parseGroup() *node_t {
 		p.acceptS(")")
 
 		return expr
+	} else {
+		return p.parseTerminal()
 	}
-
-	return p.parseTerminal()
 }
 
 func (p *parser_t) parseMemberOrCall() *node_t {
@@ -705,6 +756,13 @@ func (p *parser_t) parseMandatoryExpression() *node_t {
 }
 
 // 
+func (p *parser_t) parseSimpleStatement() *node_t {
+	return p.parseZeroOrOneExpression()
+}
+
+func (p *parser_t) parseCompoundStatement() *node_t {
+	return p.parseSimpleStatement()
+}
 
 func (p *parser_t) parseFile() *node_t {
 	return p.parseZeroOrOneExpression()

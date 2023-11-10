@@ -130,6 +130,14 @@ func utf_isLetterOrDigit(r rune) bool {
 func utf_isWhiteSpace(r rune) bool {
     if r < 0x80 {
         return r == ' ' || (r >= 0x09 && r <= 0x0D)
+    } else if (
+        r == 0x00 ||
+        r == 0x08 ||
+        r == 0x09 ||
+        r == 0x0a ||
+        r == 0x0d ||
+        r == 0x20 ) {
+        return true
     }
     return strings.Compare(UnicodeCategory(r), "Zs") == 0
 }
