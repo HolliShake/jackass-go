@@ -757,7 +757,66 @@ func (p *parser_t) parseMandatoryExpression() *node_t {
 
 // 
 func (p *parser_t) parseSimpleStatement() *node_t {
-	return p.parseZeroOrOneExpression()
+	switch p.lookahead.value {
+		case "var", "let", "const":
+			start := p.lookahead.position
+			var ntype NodeType
+
+			if strings.Compare(p.lookahead.value, "var") == 0 {
+				ntype = NT_VARIABLE_DEC
+				p.acceptK("var")
+			} else if strings.Compare(p.lookahead.value, "let") == 0 {
+				ntype = NT_LOCAL_DEC
+				p.acceptK("let")
+			} else {
+				ntype = NT_CONST_DEC
+				p.acceptK("const")
+			}
+
+			p.acceptK(p.lookahead.value)
+
+			if !p.checkT(TKIND_ID) {
+				raiseError(p, fmt.Sprintf("variable name is required after \"%s\", got \"%s\".", p.previous.value, p.lookahead.value), p.lookahead.position)
+			}
+
+			declairations := new([][]interface{})
+
+			for p.checkT(TKIND_ID) {
+				variable := p.lookahead.value
+				position := p.lookahead.position
+				p.acceptT(TKIND_ID)
+
+				var value *node_t = nil
+
+				if p.checkS("=") {
+					value = p.parseMandatoryExpression()
+				}
+
+				*declairations = append(*declairations, []interface{}{variable, position, value})
+			}
+
+			p.acceptS(";")
+
+			return VariableDeclairationNode(ntype, declairations, start.merge(p.previous.position))
+		
+		case ";":
+			for p.checkS(";") {
+				p.acceptS(";")
+			}
+
+			return EmptyExpressionNode(p.previous.position)
+
+		default:
+			node := p.parseZeroOrOneExpression()
+
+			if node == nil {
+				return node
+			}
+
+			p.acceptS(";")
+
+			return ExpressionStatementNode(node, node.position.merge(p.previous.position))
+	}
 }
 
 func (p *parser_t) parseCompoundStatement() *node_t {
@@ -765,7 +824,19 @@ func (p *parser_t) parseCompoundStatement() *node_t {
 }
 
 func (p *parser_t) parseFile() *node_t {
-	return p.parseZeroOrOneExpression()
+	body := new([]*node_t)
+
+	stmntN := p.parseCompoundStatement()
+
+	for (!p.checkT(TKIND_EOF)) && stmntN != nil {
+		*body = append(*body, stmntN)
+		stmntN = p.parseCompoundStatement()
+	}
+
+	// Eof
+	p.acceptT(TKIND_EOF)
+
+	return p.parse
 }
 
 func (p *parser_t) parse() *node_t {

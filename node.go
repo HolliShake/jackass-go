@@ -25,8 +25,14 @@ const (
 	NT_TERNARY_EXPRESSION NodeType = 19
 	NT_UNARY_EXPRESSION NodeType = 20
 	NT_UNARY_INC_DEC NodeType = 21
-	NT_BINARY_EXPRESSION NodeType = 4
-	NT_LOGICAL_EXPRESSION NodeType = 5
+	NT_BINARY_EXPRESSION NodeType = 22
+	NT_LOGICAL_EXPRESSION NodeType = 23
+	// 
+	NT_VARIABLE_DEC = 24
+	NT_LOCAL_DEC = 25
+	NT_CONST_DEC = 26
+	NT_EMPTY_EXPRESSION = 27
+	NT_EXPRESSION_STATEMENT = 28
 )
 
 type node_t struct {
@@ -42,6 +48,9 @@ type node_t struct {
 	ternaryExpression *ternary_expression_node_t
 	unaryExpression *unary_expression_node_t
 	binaryExpression *binary_expression_node_t
+	// 
+	declairation *variable_declairation_node_t
+	expressionStatement *expression_statement_node_t
 	// 
 	position *position_t
 }
@@ -98,6 +107,14 @@ type unary_expression_node_t struct {
 type binary_expression_node_t struct {
 	operator string
 	left, right *node_t
+}
+
+type variable_declairation_node_t struct {
+	declairations *[][]interface{}
+}
+
+type expression_statement_node_t struct {
+	expression *node_t
 }
 
 // 
@@ -224,4 +241,29 @@ func BinaryExpressionNode(ntype NodeType, operator string, left, right *node_t) 
 	return node
 }
 
+func VariableDeclairationNode(ntype NodeType, declairations *[][]interface{}, position *position_t) *node_t {
+	node := new(node_t)
+	node.ntype = ntype
+	node.position = position
+	//
+	node.declairation = new(variable_declairation_node_t)
+	node.declairation.declairations = declairations
+	return node
+}
 
+func EmptyExpressionNode(position *position_t) *node_t {
+	node := new(node_t)
+	node.ntype = NT_EMPTY_EXPRESSION
+	node.position = position
+	return node
+}
+
+func ExpressionStatementNode(expression *node_t, position *position_t) *node_t {
+	node := new(node_t)
+	node.ntype = NT_EXPRESSION_STATEMENT
+	node.position = position
+	// 
+	node.expressionStatement = new(expression_statement_node_t)
+	node.expressionStatement.expression = expression
+	return node
+}

@@ -534,7 +534,7 @@ func (l *lexer_t) nextSymbol() *token_t {
 }
 
 func (l *lexer_t) nextEof() *token_t {
-	return Token(TKIND_EOF, "", Position(l.line, l.column))
+	return Token(TKIND_EOF, "[eof]", Position(l.line, l.column))
 }
 
 func (l *lexer_t) nextToken() *token_t {
