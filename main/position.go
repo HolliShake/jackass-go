@@ -15,6 +15,12 @@ func Position(lstart, cstart int) *position_t {
 
 func PositionFromStartAndEnd(start, end *position_t) *position_t {
 	pos := new(position_t)
+
+	//lint:ignore SA4031 possible not nil
+	if pos == nil {
+		basicError("Out of memory!!!")
+	}
+
 	pos.lstart = start.lstart
 	pos.lend = end.lend
 	pos.cstart = start.cstart

@@ -24,6 +24,12 @@ type token_t struct {
 
 func Token(kind TokenKind, value string, position *position_t) *token_t {
 	tok := new(token_t)
+
+	//lint:ignore SA4031 possible not nil
+	if tok == nil {
+		basicError("Out of memory!!!")
+	}
+
 	tok.kind = kind
 	tok.value = value
 	tok.position = position

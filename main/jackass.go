@@ -31,5 +31,6 @@ func (j *jackass_t) execute(filePath string) {
 
 	lexer := Lexer(filePath, content)
 	parser := Parser(lexer)
-	fmt.Println(parser.parse())
+	analyzer := Analyzer(parser)
+	fmt.Println(analyzer.analyze())
 }

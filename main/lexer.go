@@ -16,6 +16,12 @@ type lexer_t struct {
 
 func Lexer(filePath, fileContent string) *lexer_t {
 	lexer := new(lexer_t)
+
+	//lint:ignore SA4031 possible not nil
+	if lexer == nil {
+		basicError("Out of memory!!!")
+	}
+
 	lexer.filePath = filePath
 	lexer.fileContent = fileContent
 	lexer.fileLen = len(fileContent)
@@ -57,7 +63,6 @@ func (l *lexer_t) nextRune() rune {
 				0,
 				0,
 			)
-			break
 		case 3:
 			ord = utf_toCodePoint(
 				int(l.fileContent[l.index + 0]),
@@ -65,7 +70,6 @@ func (l *lexer_t) nextRune() rune {
 				int(l.fileContent[l.index + 2]),
 				0,
 			)
-			break
 		case 4:
 			ord = utf_toCodePoint(
 				int(l.fileContent[l.index + 0]),
@@ -73,7 +77,6 @@ func (l *lexer_t) nextRune() rune {
 				int(l.fileContent[l.index + 2]),
 				int(l.fileContent[l.index + 3]),
 			)
-			break
 	}
 
 	l.index += (size - 1) // -1 because array index starts at 0
@@ -302,9 +305,10 @@ func (l * lexer_t) nextString() *token_t {
 	l.forward()
 	isclose = l.isString() && l.lookahead == openner
 
+	loop:
 	for !l.isEof() && (isopen && !isclose) { 
 		if l.lookahead == '\n' {
-			break
+			break loop
 		}
 
 		if l.lookahead == '\\' {
@@ -313,26 +317,26 @@ func (l * lexer_t) nextString() *token_t {
 			switch l.lookahead { 
 				case 'b':
 					value += "\b"
-					break
+					
 				case 'n':
 					value += "\n"
-					break
+					
 				case 't':
 					value += "\t"
-					break
+					
 				case 'r':
 					value += "\r"
-					break
+					
 				case 'f':
 					value += "\f"
-					break
+					
 
 				case '"':
 					value += "\""
-					break
+					
 				case '\'':
 					value += "'"
-					break
+					
 				default:
 					value += string(l.lookahead)
 			}
@@ -364,7 +368,7 @@ func (l *lexer_t) nextSymbol() *token_t {
 		case '(', ')', '[', ']', '{', '}', '~', ':', ';', ',':
 			value += string(l.lookahead)
 			l.forward()
-			break
+			
 		case '?':
 			value += string(l.lookahead)
 			l.forward()
@@ -373,7 +377,7 @@ func (l *lexer_t) nextSymbol() *token_t {
 				value += string(l.lookahead)
 				l.forward()
 			}
-			break
+			
 		case '.':
 			value += string(l.lookahead)
 			l.forward()
@@ -389,7 +393,7 @@ func (l *lexer_t) nextSymbol() *token_t {
 					raiseError(l, fmt.Sprintf("invalid symbol \"%s\".", value), pos)
 				}
 			}
-			break
+			
 		case '*':
 			value += string(l.lookahead)
 			l.forward()
@@ -398,7 +402,7 @@ func (l *lexer_t) nextSymbol() *token_t {
 				value += string(l.lookahead)
 				l.forward()
 			}
-			break
+			
 		case '/':
 			value += string(l.lookahead)
 			l.forward()
@@ -407,7 +411,7 @@ func (l *lexer_t) nextSymbol() *token_t {
 				value += string(l.lookahead)
 				l.forward()
 			}
-			break
+			
 		case '%':
 			value += string(l.lookahead)
 			l.forward()
@@ -416,7 +420,7 @@ func (l *lexer_t) nextSymbol() *token_t {
 				value += string(l.lookahead)
 				l.forward()
 			}
-			break
+			
 		case '+':
 			value += string(l.lookahead)
 			l.forward()
@@ -428,7 +432,7 @@ func (l *lexer_t) nextSymbol() *token_t {
 				value += string(l.lookahead)
 				l.forward()
 			}
-			break
+			
 		case '-':
 			value += string(l.lookahead)
 			l.forward()
@@ -440,7 +444,7 @@ func (l *lexer_t) nextSymbol() *token_t {
 				value += string(l.lookahead)
 				l.forward()
 			}
-			break
+			
 		case '<':
 			value += string(l.lookahead)
 			l.forward()
@@ -454,7 +458,7 @@ func (l *lexer_t) nextSymbol() *token_t {
 				value += string(l.lookahead)
 				l.forward()
 			}
-			break
+			
 		case '>':
 			value += string(l.lookahead)
 			l.forward()
@@ -468,7 +472,7 @@ func (l *lexer_t) nextSymbol() *token_t {
 				value += string(l.lookahead)
 				l.forward()
 			}
-			break
+			
 		case '&':
 			value += string(l.lookahead)
 			l.forward()
@@ -480,7 +484,7 @@ func (l *lexer_t) nextSymbol() *token_t {
 				value += string(l.lookahead)
 				l.forward()
 			}
-			break
+			
 		case '|':
 			value += string(l.lookahead)
 			l.forward()
@@ -492,7 +496,7 @@ func (l *lexer_t) nextSymbol() *token_t {
 				value += string(l.lookahead)
 				l.forward()
 			}
-			break
+			
 		case '^':
 			value += string(l.lookahead)
 			l.forward()
@@ -501,7 +505,7 @@ func (l *lexer_t) nextSymbol() *token_t {
 				value += string(l.lookahead)
 				l.forward()
 			}
-			break
+			
 		case '=':
 			value += string(l.lookahead)
 			l.forward()
@@ -510,7 +514,7 @@ func (l *lexer_t) nextSymbol() *token_t {
 				value += string(l.lookahead)
 				l.forward()
 			}
-			break
+			
 		case '!': 
 			value += string(l.lookahead)
 			l.forward()
@@ -519,7 +523,7 @@ func (l *lexer_t) nextSymbol() *token_t {
 				value += string(l.lookahead)
 				l.forward()
 			}
-			break
+			
 	}
 
 	if len(value) <= 0 {

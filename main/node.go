@@ -33,6 +33,7 @@ const (
 	NT_CONST_DEC = 26
 	NT_EMPTY_EXPRESSION = 27
 	NT_EXPRESSION_STATEMENT = 28
+	NT_FILE = 29
 )
 
 type node_t struct {
@@ -51,6 +52,7 @@ type node_t struct {
 	// 
 	declairation *variable_declairation_node_t
 	expressionStatement *expression_statement_node_t
+	file *file_node_t
 	// 
 	position *position_t
 }
@@ -115,6 +117,10 @@ type variable_declairation_node_t struct {
 
 type expression_statement_node_t struct {
 	expression *node_t
+}
+
+type file_node_t struct {
+	body *[]*node_t
 }
 
 // 
@@ -265,5 +271,16 @@ func ExpressionStatementNode(expression *node_t, position *position_t) *node_t {
 	// 
 	node.expressionStatement = new(expression_statement_node_t)
 	node.expressionStatement.expression = expression
+	return node
+}
+
+func FileNode(body *[]*node_t) *node_t {
+	node := new(node_t)
+	node.ntype = NT_FILE
+	node.position = nil
+	// 
+	node.file = new(file_node_t)
+	node.file.body = body
+
 	return node
 }

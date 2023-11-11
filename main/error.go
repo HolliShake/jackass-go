@@ -8,7 +8,7 @@ import (
 )
 
 func basicError(message string) {
-	fmt.Fprintf(os.Stderr, "%s\n", message)
+	fmt.Fprintf(os.Stderr, "JackAss::Error: %s\n", message)
 	os.Exit(0xffffffff)
 }
 

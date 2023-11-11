@@ -40,19 +40,19 @@ func utf_toCodePoint(b1, b2, b3, b4 int) rune {
         case 2:
             ord  = ((b1 & _2BYTE_FOLLOW) << 6)
             ord |= ((b2 & _MAX_TRAILING))
-            break
+            
         case 3:
             ord  = ((b1 & _3BYTE_FOLLOW) << 12)
             ord |= ((b2 & _MAX_TRAILING) <<  6)
             ord |= ((b3 & _MAX_TRAILING))
-            break
+            
         case 4:
             ord  = ((b1 & _4BYTE_FOLLOW) << 18)
             ord |= ((b2 & _MAX_TRAILING) << 12)
             ord |= ((b3 & _MAX_TRAILING) <<  6)
             ord |= ((b4 & _MAX_TRAILING))
         default:
-            break
+            
     }
 
     return rune(ord)

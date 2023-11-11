@@ -22,6 +22,7 @@ type parser_t struct {
 func Parser(lexer *lexer_t) *parser_t {
 	parser := new(parser_t)
 
+	//lint:ignore SA4031 possible not nil
 	if parser == nil {
 		basicError("Out of memory!!!")
 	}
@@ -82,6 +83,7 @@ func (p *parser_t) acceptT(tokenKind TokenKind) {
 
 // acceptV accepts lookahead value
 // @param value string
+//lint:ignore U1000 disable unused
 func (p *parser_t) acceptV(value string) {
 	if p.checkV(value) {
 		p.previous, p.lookahead = p.lookahead, p.lexer.nextToken()
@@ -118,7 +120,7 @@ func (p *parser_t) parseTerminal() *node_t {
 				p.lookahead.value, 
 				p.lookahead.position,
 			)
-			p.acceptT(TKIND_KEYWORD)
+			p.acceptT(TKIND_ID)
 			return node
 		case TKIND_INTEGER:
 			node := TerminalNode(
@@ -221,7 +223,7 @@ func (p *parser_t) parseTerminal() *node_t {
 						p.acceptS(",")
 
 						if !p.checkT(TKIND_ID) {
-							raiseError(p, fmt.Sprintf("missing parameter after \",\"."), p.lookahead.position)
+							raiseError(p, "missing parameter after \",\".", p.lookahead.position)
 						}
 
 						param := p.lookahead.value
@@ -300,7 +302,7 @@ func (p *parser_t) parseGroup() *node_t {
 				p.acceptS(",")
 				keyN = p.parseZeroOrOneExpression()
 				if keyN == nil {
-					raiseError(p, fmt.Sprintf("missing key after \",\"."), p.lookahead.position)
+					raiseError(p, "missing key after \",\".", p.lookahead.position)
 				}
 
 				p.acceptS(":")
@@ -344,7 +346,7 @@ func (p *parser_t) parseMemberOrCall() *node_t {
 		if p.checkS(".") {
 			p.memberAccess += 1
 			if p.memberAccess > MAX_MEMBER_ACCESS {
-				raiseError(p, fmt.Sprintf("member access nesting level too deep."), node.position.merge(p.previous.position))
+				raiseError(p, "member access nesting level too deep.", node.position.merge(p.previous.position))
 			}
 
 			// (. TKIND_ID)
@@ -357,7 +359,7 @@ func (p *parser_t) parseMemberOrCall() *node_t {
 		} else if p.checkS("[") {
 			p.indexingLevel += 1
 			if p.indexingLevel > MAX_INDEXING {
-				raiseError(p, fmt.Sprintf("subscription nesting level too deep."), node.position.merge(p.previous.position))
+				raiseError(p, "subscription nesting level too deep.", node.position.merge(p.previous.position))
 			}
 
 			// '[' mandatoryExpression ']'
@@ -369,7 +371,7 @@ func (p *parser_t) parseMemberOrCall() *node_t {
 		} else if p.checkS("(") {
 			p.callLevel += 1
 			if p.callLevel > MAX_CALL {
-				raiseError(p, fmt.Sprintf("call nesting level too deep."), node.position.merge(p.previous.position))
+				raiseError(p, "call nesting level too deep.", node.position.merge(p.previous.position))
 			}
 
 			// '(' mandatoryExpression ')'
@@ -428,14 +430,14 @@ func (p *parser_t) parsePostfix() *node_t {
 
 		trueval := p.parseZeroOrOneExpression()
 		if trueval == nil {
-			raiseError(p, fmt.Sprintf("missing true value after \"?\"."), p.lookahead.position)
+			raiseError(p, "missing true value after \"?\".", p.lookahead.position)
 		}
 
 		p.acceptS(":")
 
 		falseval := p.parseZeroOrOneExpression()
 		if falseval == nil {
-			raiseError(p, fmt.Sprintf("missing false value after \":\"."), p.lookahead.position)
+			raiseError(p, "missing false value after \":\".", p.lookahead.position)
 		}
 		
 		return TernaryExpressionNode(node, trueval, falseval, node.position.merge(p.previous.position))
@@ -473,7 +475,7 @@ func (p *parser_t) parseMul() *node_t {
 
 		p.expressionLevel += 1
 		if p.expressionLevel > MAX_EXPRESSION_NESTING {
-			raiseError(p, fmt.Sprintf("expression nesting too deep."), p.lookahead.position)
+			raiseError(p, "expression nesting too deep.", p.lookahead.position)
 		}
 
 		operator := p.lookahead
@@ -504,7 +506,7 @@ func (p *parser_t) parseAdd() *node_t {
 
 		p.expressionLevel += 1
 		if p.expressionLevel > MAX_EXPRESSION_NESTING {
-			raiseError(p, fmt.Sprintf("expression nesting too deep."), p.lookahead.position)
+			raiseError(p, "expression nesting too deep.", p.lookahead.position)
 		}
 
 		operator := p.lookahead
@@ -535,7 +537,7 @@ func (p *parser_t) parseShift() *node_t {
 
 		p.expressionLevel += 1
 		if p.expressionLevel > MAX_EXPRESSION_NESTING {
-			raiseError(p, fmt.Sprintf("expression nesting too deep."), p.lookahead.position)
+			raiseError(p, "expression nesting too deep.", p.lookahead.position)
 		}
 
 		operator := p.lookahead
@@ -566,7 +568,7 @@ func (p *parser_t) parseRel() *node_t {
 
 		p.expressionLevel += 1
 		if p.expressionLevel > MAX_EXPRESSION_NESTING {
-			raiseError(p, fmt.Sprintf("expression nesting too deep."), p.lookahead.position)
+			raiseError(p, "expression nesting too deep.", p.lookahead.position)
 		}
 
 		operator := p.lookahead
@@ -597,7 +599,7 @@ func (p *parser_t) parseEql() *node_t {
 
 		p.expressionLevel += 1
 		if p.expressionLevel > MAX_EXPRESSION_NESTING {
-			raiseError(p, fmt.Sprintf("expression nesting too deep."), p.lookahead.position)
+			raiseError(p, "expression nesting too deep.", p.lookahead.position)
 		}
 
 		operator := p.lookahead
@@ -628,7 +630,7 @@ func (p *parser_t) parseBit() *node_t {
 
 		p.expressionLevel += 1
 		if p.expressionLevel > MAX_EXPRESSION_NESTING {
-			raiseError(p, fmt.Sprintf("expression nesting too deep."), p.lookahead.position)
+			raiseError(p, "expression nesting too deep.", p.lookahead.position)
 		}
 
 		operator := p.lookahead
@@ -659,7 +661,7 @@ func (p *parser_t) parseLog() *node_t {
 
 		p.expressionLevel += 1
 		if p.expressionLevel > MAX_EXPRESSION_NESTING {
-			raiseError(p, fmt.Sprintf("expression nesting too deep."), p.lookahead.position)
+			raiseError(p, "expression nesting too deep.", p.lookahead.position)
 		}
 
 		operator := p.lookahead
@@ -690,7 +692,7 @@ func (p *parser_t) parseAss() *node_t {
 
 		p.expressionLevel += 1
 		if p.expressionLevel > MAX_EXPRESSION_NESTING {
-			raiseError(p, fmt.Sprintf("expression nesting too deep."), p.lookahead.position)
+			raiseError(p, "expression nesting too deep.", p.lookahead.position)
 		}
 
 		operator := p.lookahead
@@ -721,7 +723,7 @@ func (p *parser_t) parseAug() *node_t {
 
 		p.expressionLevel += 1
 		if p.expressionLevel > MAX_EXPRESSION_NESTING {
-			raiseError(p, fmt.Sprintf("expression nesting too deep."), p.lookahead.position)
+			raiseError(p, "expression nesting too deep.", p.lookahead.position)
 		}
 
 		operator := p.lookahead
@@ -773,8 +775,6 @@ func (p *parser_t) parseSimpleStatement() *node_t {
 				p.acceptK("const")
 			}
 
-			p.acceptK(p.lookahead.value)
-
 			if !p.checkT(TKIND_ID) {
 				raiseError(p, fmt.Sprintf("variable name is required after \"%s\", got \"%s\".", p.previous.value, p.lookahead.value), p.lookahead.position)
 			}
@@ -789,10 +789,21 @@ func (p *parser_t) parseSimpleStatement() *node_t {
 				var value *node_t = nil
 
 				if p.checkS("=") {
+					p.acceptS("=")
 					value = p.parseMandatoryExpression()
 				}
 
 				*declairations = append(*declairations, []interface{}{variable, position, value})
+
+				if (!p.checkS(",")) {
+					break
+				} else {
+					p.acceptS(",")
+				}
+
+				if !p.checkT(TKIND_ID) {
+					raiseError(p, fmt.Sprintf("variable name is required after \"%s\", got \"%s\".", p.previous.value, p.lookahead.value), p.previous.position)
+				}
 			}
 
 			p.acceptS(";")
@@ -828,7 +839,7 @@ func (p *parser_t) parseFile() *node_t {
 
 	stmntN := p.parseCompoundStatement()
 
-	for (!p.checkT(TKIND_EOF)) && stmntN != nil {
+	for stmntN != nil {
 		*body = append(*body, stmntN)
 		stmntN = p.parseCompoundStatement()
 	}
@@ -836,7 +847,7 @@ func (p *parser_t) parseFile() *node_t {
 	// Eof
 	p.acceptT(TKIND_EOF)
 
-	return p.parse
+	return FileNode(body)
 }
 
 func (p *parser_t) parse() *node_t {
