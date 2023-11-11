@@ -559,6 +559,7 @@ func (l *lexer_t) nextToken() *token_t {
 	return l.nextEof()
 }
 
+//lint:ignore U1000 unused
 func (l *lexer_t) dump() {
 	for !l.isEof() {
 		tok := l.nextToken()
