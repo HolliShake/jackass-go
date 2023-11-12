@@ -2,6 +2,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"github.com/jackass/jutil"
 )
 
 const (
@@ -11,6 +12,7 @@ const (
 	MAX_EXPRESSION_NESTING int = 100
 	// 
 	MAX_ARGS int = 255
+	MAX_STATIC_ELEMENTS int = 512
 )
 
 type parser_t struct {
@@ -204,10 +206,11 @@ func (p *parser_t) parseTerminal() *node_t {
 				p.acceptK("function")
 				p.acceptS("(")
 				
-
+				var count int = 0
 				var parameters *[][]interface{} = new([][]interface{})
 
 				if p.checkT(TKIND_ID) {
+					count++
 					param := p.lookahead.value
 					p.acceptT(TKIND_ID)
 
@@ -225,7 +228,7 @@ func (p *parser_t) parseTerminal() *node_t {
 						if !p.checkT(TKIND_ID) {
 							raiseError(p, "missing parameter after \",\".", p.lookahead.position)
 						}
-
+						
 						param := p.lookahead.value
 						p.acceptT(TKIND_ID)
 
@@ -236,10 +239,20 @@ func (p *parser_t) parseTerminal() *node_t {
 						}
 
 						*parameters = append(*parameters, []interface{}{param, p.previous.position})
+						count++
+
+						if count > MAX_ARGS {
+							break
+						}
 					}
 				}
 
 				p.acceptS(")")
+
+				if count > MAX_ARGS {
+					raiseError(p, "too many parameters. Try variadict function.", p.lookahead.position)
+				}
+
 				p.acceptS("{")
 
 				var body *[]*node_t = new([]*node_t)
@@ -267,21 +280,32 @@ func (p *parser_t) parseGroup() *node_t {
 		start := p.lookahead.position
 		p.acceptS("[")
 
+		var count int = 0
 		var elements *[]*node_t = new([]*node_t)
 
 		elementN := p.parseZeroOrOneExpression()
 		if elementN != nil {
+			count++
 			*elements = append(*elements, elementN)
 
 			for p.checkS(",") {
 				p.acceptS(",")
 				elementN = p.parseMandatoryExpression()
 				*elements = append(*elements, elementN)
+				count++
+
+				if count >= int(jutil.MAX_SAFE_INDEX) {
+					break
+				}
 			}
 		}
 
 		p.acceptS("]")
 		end := p.previous.position
+
+		if count > MAX_STATIC_ELEMENTS {
+			raiseError(p, fmt.Sprintf("too many elements %d, max %d", count, MAX_STATIC_ELEMENTS), start.merge(end))
+		}
 
 		return ArrayNode(elements, start.merge(end))
 
@@ -290,10 +314,12 @@ func (p *parser_t) parseGroup() *node_t {
 		start := p.lookahead.position
 		p.acceptS("{")
 
+		var count int = 0
 		var pairs *[][]*node_t = new([][]*node_t)
 
 		keyN := p.parseZeroOrOneExpression()
 		if keyN != nil {
+			count++
 			p.acceptS(":")
 			valueN := p.parseMandatoryExpression()
 			*pairs = append(*pairs, []*node_t{keyN, valueN})
@@ -308,11 +334,20 @@ func (p *parser_t) parseGroup() *node_t {
 				p.acceptS(":")
 				valueN = p.parseMandatoryExpression()
 				*pairs = append(*pairs, []*node_t{keyN, valueN})
+				count++
+
+				if count >= int(jutil.MAX_SAFE_INDEX) {
+					break
+				}
 			}
 		}
 
 		p.acceptS("}")
 		end := p.previous.position
+
+		if count > MAX_STATIC_ELEMENTS {
+			raiseError(p, fmt.Sprintf("too many elements %d, max %d", count, MAX_STATIC_ELEMENTS), start.merge(end))
+		}
 
 		return ObjectNode(pairs, start.merge(end))
 

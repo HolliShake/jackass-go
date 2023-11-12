@@ -48,6 +48,10 @@ func (a *analyzer_t) visit(node *node_t) *node_t {
 			return a.analyzeBoolean(node)
 		case NT_NULL:
 			return a.analyzeNull(node)
+		case NT_ARRAY:
+			return a.analyzeArray(node)
+		case NT_OBJECT:
+			return a.analyzeObject(node)
 		// 
 		case NT_EXPRESSION_STATEMENT:
 			return a.analyzeExpressionStatement(node)
@@ -112,13 +116,28 @@ func (a *analyzer_t) analyzeBoolean(node *node_t) *node_t {
 }
 
 func (a *analyzer_t) analyzeNull(node *node_t) *node_t {
-	if (strings.Compare(node.terminal.value, "null") != 0){
+	if (strings.Compare(node.terminal.value, "null") != 0) {
 		panic(fmt.Sprintf("invalid null value \"%s\"!!!", node.terminal.value))
 	}
 	return node
 }
-8
-// 
+
+func (a *analyzer_t) analyzeArray(node *node_t) *node_t {
+	for i := 0; i < len(*node.array.elements); i++ {
+		(*node.array.elements)[i] = a.visit((*node.array.elements)[i])
+	}
+	return node
+}
+
+func (a *analyzer_t) analyzeObject(node *node_t) *node_t {
+	for i := 0; i < len(*node.object.members); i++ {
+		(*node.object.members)[i][0] = a.visit((*node.object.members)[i][0])
+		(*node.object.members)[i][1] = a.visit((*node.object.members)[i][1])
+	}
+	return node
+}
+
+//
 
 func (a *analyzer_t) analyzeExpressionStatement(node *node_t) *node_t {
 	node.expressionStatement.expression = a.visit(node.expressionStatement.expression)
