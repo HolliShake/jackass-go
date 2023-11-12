@@ -2,6 +2,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"github.com/jackass/jutil"
 )
 
 
@@ -45,7 +46,7 @@ func (l *lexer_t) nextRune() rune {
 		return rune(0)
 	}
 
-	size := utf_sizeOfUtf(int(l.fileContent[l.index]))
+	size := jutil.Utf_sizeOfUtf(int(l.fileContent[l.index]))
 
 	if (l.index + (size - 1)) >= l.fileLen {
 		return rune(l.fileContent[l.index])
@@ -57,21 +58,21 @@ func (l *lexer_t) nextRune() rune {
 		case 1:
 			return rune(l.fileContent[l.index])
 		case 2:
-			ord = utf_toCodePoint(
+			ord = jutil.Utf_toCodePoint(
 				int(l.fileContent[l.index + 0]),
 				int(l.fileContent[l.index + 1]),
 				0,
 				0,
 			)
 		case 3:
-			ord = utf_toCodePoint(
+			ord = jutil.Utf_toCodePoint(
 				int(l.fileContent[l.index + 0]),
 				int(l.fileContent[l.index + 1]),
 				int(l.fileContent[l.index + 2]),
 				0,
 			)
 		case 4:
-			ord = utf_toCodePoint(
+			ord = jutil.Utf_toCodePoint(
 				int(l.fileContent[l.index + 0]),
 				int(l.fileContent[l.index + 1]),
 				int(l.fileContent[l.index + 2]),
@@ -101,24 +102,24 @@ func (l *lexer_t) forward() {
 }
 
 func (l *lexer_t) isWhiteSpace() bool {
-	return utf_isWhiteSpace(l.lookahead)
+	return jutil.Utf_isWhiteSpace(l.lookahead)
 }
 
 func (l *lexer_t) isIdentifierStart() bool {
-	return utf_isLetter(l.lookahead)
+	return jutil.Utf_isLetter(l.lookahead)
 }
 
 func (l *lexer_t) isIdentifierPart() bool {
-	return utf_isLetterOrDigit(l.lookahead)
+	return jutil.Utf_isLetterOrDigit(l.lookahead)
 }
 
 func (l *lexer_t) isDigit() bool {
-	return utf_isDigit(l.lookahead)
+	return jutil.Utf_isDigit(l.lookahead)
 }
 
 func (l *lexer_t) isHex() bool {
 	return (
-		utf_isDigit(l.lookahead) ||
+		jutil.Utf_isDigit(l.lookahead) ||
 		(l.lookahead >= 'a' && l.lookahead <= 'f') ||
 		(l.lookahead >= 'A' && l.lookahead <= 'F'))
 }

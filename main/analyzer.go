@@ -1,6 +1,7 @@
 package main
 import (
 	"fmt"
+	"strings"
 	"github.com/jackass/jutil"
 )
 
@@ -21,6 +22,14 @@ func Analyzer(parser *parser_t) *analyzer_t {
 	return analyzer
 }
 
+func (a *analyzer_t) getFilePath() string {
+	return a.parser.getFilePath()
+}
+
+func (a *analyzer_t) getFileCode() string {
+	return a.parser.getFileCode()
+}
+
 func (a *analyzer_t) visit(node *node_t) *node_t {
 	switch node.ntype {
 		case NT_ID:
@@ -29,6 +38,17 @@ func (a *analyzer_t) visit(node *node_t) *node_t {
 			return a.analyzeInteger(node)
 		case NT_OTHER_INTEGER:
 			return a.analyzeOtherInteger(node)
+		case NT_FLOAT:
+			return a.analyzeFloat(node)
+		case NT_OTHER_FLOAT:
+			return a.analyzeOtherFloat(node)
+		case NT_STRING:
+			return a.analyzeString(node)
+		case NT_BOOLEAN:
+			return a.analyzeBoolean(node)
+		case NT_NULL:
+			return a.analyzeNull(node)
+		// 
 		case NT_EXPRESSION_STATEMENT:
 			return a.analyzeExpressionStatement(node)
 		case NT_FILE:
@@ -63,6 +83,41 @@ func (a *analyzer_t) analyzeOtherInteger(node *node_t) *node_t {
 	return node
 }
 
+func (a *analyzer_t) analyzeFloat(node *node_t) *node_t {
+	node.terminal.value = fmt.Sprintf("%f", jutil.ParseFloat(node.terminal.value))
+	return node
+}
+
+func (a *analyzer_t) analyzeOtherFloat(node *node_t) *node_t {
+	// change to float node
+	node.ntype = NT_FLOAT
+	node.terminal.value = fmt.Sprintf("%f", jutil.ParseFloat(node.terminal.value))
+	return node
+}
+
+func (a *analyzer_t) analyzeString(node *node_t) *node_t {
+	if jutil.Utf_codePointLength(node.terminal.value) > int(jutil.MAX_SAFE_INDEX) {
+		raiseError(a, "string length is too large to represent", node.position)
+	}
+	return node
+}
+
+func (a *analyzer_t) analyzeBoolean(node *node_t) *node_t {
+	if !(
+		(strings.Compare(node.terminal.value,  "true") == 0) ||
+		(strings.Compare(node.terminal.value, "false") == 0)) {
+		panic(fmt.Sprintf("invalid boolean value \"%s\"!!!", node.terminal.value))
+	}
+	return node
+}
+
+func (a *analyzer_t) analyzeNull(node *node_t) *node_t {
+	if (strings.Compare(node.terminal.value, "null") != 0){
+		panic(fmt.Sprintf("invalid null value \"%s\"!!!", node.terminal.value))
+	}
+	return node
+}
+8
 // 
 
 func (a *analyzer_t) analyzeExpressionStatement(node *node_t) *node_t {

@@ -1,4 +1,4 @@
-package main
+package jutil
 import (
 	"unicode"
 	"strings"
@@ -30,10 +30,10 @@ const (
 )
 
 
-func utf_toCodePoint(b1, b2, b3, b4 int) rune {
+func Utf_toCodePoint(b1, b2, b3, b4 int) rune {
 	var ord int = 0
 	
-    switch utf_sizeOfUtf(b1) {
+    switch Utf_sizeOfUtf(b1) {
         case 1:
             return rune(b1)
          
@@ -58,7 +58,7 @@ func utf_toCodePoint(b1, b2, b3, b4 int) rune {
     return rune(ord)
 }
 
-func utf_sizeOfUtf(firstByte int) int {
+func Utf_sizeOfUtf(firstByte int) int {
     if (firstByte & _BYTE4) == _BYTE4 {
 		return 4
 	} else if (firstByte & _BYTE3) == _BYTE3 {
@@ -72,7 +72,7 @@ func utf_sizeOfUtf(firstByte int) int {
     return 0
 }
 
-func utf_isLetter(r rune) bool {
+func Utf_isLetter(r rune) bool {
 	if unicode.IsLetter(r) || r == '_' {
 		return true
 	}
@@ -96,14 +96,14 @@ func utf_isLetter(r rune) bool {
 	return false
 }
 
-func utf_isDigit(r rune) bool {
+func Utf_isDigit(r rune) bool {
     if r < 0x80 {
 		return (uint8(r) - '0') < 10
 	}
 	return strings.Compare(UnicodeCategory(r), "Nd") == 0
 }
 
-func utf_isLetterOrDigit(r rune) bool {
+func Utf_isLetterOrDigit(r rune) bool {
     if (r < 0x80) {
 		if (r == '_') {
 			return true
@@ -127,7 +127,7 @@ func utf_isLetterOrDigit(r rune) bool {
 	return false
 }
 
-func utf_isWhiteSpace(r rune) bool {
+func Utf_isWhiteSpace(r rune) bool {
     if r < 0x80 {
         return r == ' ' || (r >= 0x09 && r <= 0x0D)
     } else if (
@@ -140,4 +140,20 @@ func utf_isWhiteSpace(r rune) bool {
         return true
     }
     return strings.Compare(UnicodeCategory(r), "Zs") == 0
+}
+
+func Utf_codePointLength(str string) int {
+    if len(str) <= 0 {
+        return 0
+    }
+
+    length := 0
+
+    for index := 0; index < len(str); {
+        size := Utf_sizeOfUtf(int(str[index]))
+        index += size
+        length++
+    }
+
+    return length
 }
