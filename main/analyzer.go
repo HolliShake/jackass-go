@@ -52,6 +52,12 @@ func (a *analyzer_t) visit(node *node_t) *node_t {
 			return a.analyzeArray(node)
 		case NT_OBJECT:
 			return a.analyzeObject(node)
+		case NT_MEMBER_ACCESS:
+			return a.analyzeMemberAccess(node)
+		case NT_INDEX:
+			return a.analyzeIndex(node)
+		case NT_CALL:
+			return a.analyzeCall(node)
 		// 
 		case NT_EXPRESSION_STATEMENT:
 			return a.analyzeExpressionStatement(node)
@@ -134,6 +140,28 @@ func (a *analyzer_t) analyzeObject(node *node_t) *node_t {
 		(*node.object.members)[i][0] = a.visit((*node.object.members)[i][0])
 		(*node.object.members)[i][1] = a.visit((*node.object.members)[i][1])
 	}
+	return node
+}
+
+func (a *analyzer_t) analyzeMemberAccess(node *node_t) *node_t {
+	node.memberAccess.object = a.visit(node.memberAccess.object)
+	return node
+}
+
+func (a *analyzer_t) analyzeIndex(node *node_t) *node_t {
+	node.indexAccess.object = a.visit(node.indexAccess.object)
+	node.indexAccess.index = a.visit(node.indexAccess.index)
+	return node
+}
+
+func (a *analyzer_t) analyzeCall(node *node_t) *node_t {
+	node.call.object = a.visit(node.call.object)
+	
+	// 
+	for i := 0; i < len(*node.call.args); i++ {
+		(*node.call.args)[i] = a.visit((*node.call.args)[i])
+	}
+
 	return node
 }
 
