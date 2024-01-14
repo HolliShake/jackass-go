@@ -2,14 +2,14 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"strings"
-	"os"
 )
 
 func basicError(message string) {
 	fmt.Fprintf(os.Stderr, "JackAss::Error: %s\n", message)
-	os.Exit(0xffffffff)
+	os.Exit(0x1)
 }
 
 func raiseError[T istep](step T, message string, position *position_t) {
@@ -19,7 +19,7 @@ func raiseError[T istep](step T, message string, position *position_t) {
 	if runtime.GOOS == "windows" {
 		content = strings.ReplaceAll(content, "\r\n", "\n")
 	}
-	
+
 	lines := strings.Split(content, "\n")
 	if ((position.lstart - 1) - padding) >= 0 {
 		start = (position.lstart - 1) - padding
@@ -34,28 +34,27 @@ func raiseError[T istep](step T, message string, position *position_t) {
 	}
 
 	error += fmt.Sprintf("Error[%s:%d:%d]: %s\n", step.getFilePath(), position.lstart, position.cstart, message)
-	
+
 	for i := start; i < end; i++ {
 		lineno := fmt.Sprintf("%d", (i + 1))
 		space := ""
 
-		for j := 0; j <  len(fmt.Sprintf("%d", end)) - len(lineno); j++ {
+		for j := 0; j < len(fmt.Sprintf("%d", end))-len(lineno); j++ {
 			space += " "
 		}
 
 		indicator := ""
 
-		if (i + 1) == position.lstart && position.lstart == position.lend {
+		if (i+1) == position.lstart && position.lstart == position.lend {
 			// single line
 			indicator = ">"
-		} else if ((i + 1) >= position.lstart && (i + 1) <= position.lend) && position.lstart != position.lend {
+		} else if ((i+1) >= position.lstart && (i+1) <= position.lend) && position.lstart != position.lend {
 			indicator = "~"
 		}
 
-		error += fmt.Sprintf("%s%s | %s %s\n",  space, lineno, indicator, lines[i])
+		error += fmt.Sprintf("%s%s | %s %s\n", space, lineno, indicator, lines[i])
 	}
 
 	fmt.Fprintf(os.Stderr, "%s", error)
-	os.Exit(0xffffffff)
+	os.Exit(0x1)
 }
-

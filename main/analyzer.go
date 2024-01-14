@@ -1,7 +1,9 @@
 package main
+
 import (
 	"fmt"
 	"strings"
+
 	"github.com/jackass/jutil"
 )
 
@@ -32,39 +34,45 @@ func (a *analyzer_t) getFileCode() string {
 
 func (a *analyzer_t) visit(node *node_t) *node_t {
 	switch node.ntype {
-		case NT_ID:
-			return a.analyzeID(node)
-		case NT_INTEGER:
-			return a.analyzeInteger(node)
-		case NT_OTHER_INTEGER:
-			return a.analyzeOtherInteger(node)
-		case NT_FLOAT:
-			return a.analyzeFloat(node)
-		case NT_OTHER_FLOAT:
-			return a.analyzeOtherFloat(node)
-		case NT_STRING:
-			return a.analyzeString(node)
-		case NT_BOOLEAN:
-			return a.analyzeBoolean(node)
-		case NT_NULL:
-			return a.analyzeNull(node)
-		case NT_ARRAY:
-			return a.analyzeArray(node)
-		case NT_OBJECT:
-			return a.analyzeObject(node)
-		case NT_MEMBER_ACCESS:
-			return a.analyzeMemberAccess(node)
-		case NT_INDEX:
-			return a.analyzeIndex(node)
-		case NT_CALL:
-			return a.analyzeCall(node)
-		// 
-		case NT_EXPRESSION_STATEMENT:
-			return a.analyzeExpressionStatement(node)
-		case NT_FILE:
-			return a.analyzeFile(node)
-		default:
-			panic(fmt.Sprintf("node not implemented %d!!!", node.ntype))
+	case NT_ID:
+		return a.analyzeID(node)
+	case NT_INTEGER:
+		return a.analyzeInteger(node)
+	case NT_OTHER_INTEGER:
+		return a.analyzeOtherInteger(node)
+	case NT_BIG_INTEGER:
+		return a.analyzeBigInteger(node)
+	case NT_OTHER_BIG_INTEGER:
+		return a.analyzeOtherBigInteger(node)
+	case NT_FLOAT:
+		return a.analyzeFloat(node)
+	case NT_OTHER_FLOAT:
+		return a.analyzeOtherFloat(node)
+	case NT_STRING:
+		return a.analyzeString(node)
+	case NT_BOOLEAN:
+		return a.analyzeBoolean(node)
+	case NT_NULL:
+		return a.analyzeNull(node)
+	case NT_ARRAY:
+		return a.analyzeArray(node)
+	case NT_OBJECT:
+		return a.analyzeObject(node)
+	case NT_MEMBER_ACCESS:
+		return a.analyzeMemberAccess(node)
+	case NT_INDEX:
+		return a.analyzeIndex(node)
+	case NT_CALL:
+		return a.analyzeCall(node)
+	//
+	case NT_VARIABLE_DEC:
+		return a.analyzeVariableDeclairation(node)
+	case NT_EXPRESSION_STATEMENT:
+		return a.analyzeExpressionStatement(node)
+	case NT_FILE:
+		return a.analyzeFile(node)
+	default:
+		panic(fmt.Sprintf("node not implemented %d!!!", node.ntype))
 	}
 }
 
@@ -81,15 +89,23 @@ func (a *analyzer_t) analyzeOtherInteger(node *node_t) *node_t {
 	// change to integer node
 	node.ntype = NT_INTEGER
 	switch node.terminal.value[0:2] {
-		case "0x", "0X":
-			node.terminal.value = fmt.Sprintf("%d", jutil.Parse(node.terminal.value, 16))
-		case "0o", "0O":
-			node.terminal.value = fmt.Sprintf("%d", jutil.Parse(node.terminal.value,  8))
-		case "0b", "0B":
-			node.terminal.value = fmt.Sprintf("%d", jutil.Parse(node.terminal.value,  2))
-		default:
-			panic(fmt.Sprintf("invalid number format %s!!!", node.terminal.value))
+	case "0x", "0X":
+		node.terminal.value = fmt.Sprintf("%d", jutil.Parse(node.terminal.value, 16))
+	case "0o", "0O":
+		node.terminal.value = fmt.Sprintf("%d", jutil.Parse(node.terminal.value, 8))
+	case "0b", "0B":
+		node.terminal.value = fmt.Sprintf("%d", jutil.Parse(node.terminal.value, 2))
+	default:
+		panic(fmt.Sprintf("invalid number format %s!!!", node.terminal.value))
 	}
+	return node
+}
+
+func (a *analyzer_t) analyzeBigInteger(node *node_t) *node_t {
+	return node
+}
+
+func (a *analyzer_t) analyzeOtherBigInteger(node *node_t) *node_t {
 	return node
 }
 
@@ -113,8 +129,7 @@ func (a *analyzer_t) analyzeString(node *node_t) *node_t {
 }
 
 func (a *analyzer_t) analyzeBoolean(node *node_t) *node_t {
-	if !(
-		(strings.Compare(node.terminal.value,  "true") == 0) ||
+	if !((strings.Compare(node.terminal.value, "true") == 0) ||
 		(strings.Compare(node.terminal.value, "false") == 0)) {
 		panic(fmt.Sprintf("invalid boolean value \"%s\"!!!", node.terminal.value))
 	}
@@ -122,7 +137,7 @@ func (a *analyzer_t) analyzeBoolean(node *node_t) *node_t {
 }
 
 func (a *analyzer_t) analyzeNull(node *node_t) *node_t {
-	if (strings.Compare(node.terminal.value, "null") != 0) {
+	if strings.Compare(node.terminal.value, "null") != 0 {
 		panic(fmt.Sprintf("invalid null value \"%s\"!!!", node.terminal.value))
 	}
 	return node
@@ -156,8 +171,8 @@ func (a *analyzer_t) analyzeIndex(node *node_t) *node_t {
 
 func (a *analyzer_t) analyzeCall(node *node_t) *node_t {
 	node.call.object = a.visit(node.call.object)
-	
-	// 
+
+	//
 	for i := 0; i < len(*node.call.args); i++ {
 		(*node.call.args)[i] = a.visit((*node.call.args)[i])
 	}
@@ -167,13 +182,23 @@ func (a *analyzer_t) analyzeCall(node *node_t) *node_t {
 
 //
 
+func (a *analyzer_t) analyzeVariableDeclairation(node *node_t) *node_t {
+
+	for i := 0; i < len(*node.variableDeclairation.declaire); i++ {
+		(*node.variableDeclairation.declaire)[i][0] = a.visit((*node.variableDeclairation.declaire)[i][0])
+		(*node.variableDeclairation.declaire)[i][1] = a.visit((*node.variableDeclairation.declaire)[i][1])
+	}
+
+	return node
+}
+
 func (a *analyzer_t) analyzeExpressionStatement(node *node_t) *node_t {
 	node.expressionStatement.expression = a.visit(node.expressionStatement.expression)
 	return node
 }
 
 func (a *analyzer_t) analyzeFile(node *node_t) *node_t {
-	for i := 0; i < len(*node.file.body); i ++ {
+	for i := 0; i < len(*node.file.body); i++ {
 		(*node.file.body)[i] = a.visit((*node.file.body)[i])
 	}
 	return node
