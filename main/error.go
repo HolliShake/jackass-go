@@ -5,6 +5,8 @@ import (
 	"os"
 	"runtime"
 	"strings"
+
+	"jackass/shared"
 )
 
 func basicError(message string) {
@@ -12,7 +14,7 @@ func basicError(message string) {
 	os.Exit(0x1)
 }
 
-func raiseError[T istep](step T, message string, position *position_t) {
+func raiseError[T istep](step T, message string, position *shared.Position_t) {
 	var error string = ""
 	var padding, start, end int = 3, 0, 0
 	content := step.getFileCode()
@@ -21,19 +23,19 @@ func raiseError[T istep](step T, message string, position *position_t) {
 	}
 
 	lines := strings.Split(content, "\n")
-	if ((position.lstart - 1) - padding) >= 0 {
-		start = (position.lstart - 1) - padding
+	if ((position.Lstart - 1) - padding) >= 0 {
+		start = (position.Lstart - 1) - padding
 	} else {
 		start = 0
 	}
 
-	if (position.lend + padding) < len(lines) {
-		end = position.lend + padding
+	if (position.Lend + padding) < len(lines) {
+		end = position.Lend + padding
 	} else {
 		end = len(lines)
 	}
 
-	error += fmt.Sprintf("Error[%s:%d:%d]: %s\n", step.getFilePath(), position.lstart, position.cstart, message)
+	error += fmt.Sprintf("Error[%s:%d:%d]: %s\n", step.getFilePath(), position.Lstart, position.Cstart, message)
 
 	for i := start; i < end; i++ {
 		lineno := fmt.Sprintf("%d", (i + 1))
@@ -45,10 +47,10 @@ func raiseError[T istep](step T, message string, position *position_t) {
 
 		indicator := ""
 
-		if (i+1) == position.lstart && position.lstart == position.lend {
+		if (i+1) == position.Lstart && position.Lstart == position.Lend {
 			// single line
 			indicator = ">"
-		} else if ((i+1) >= position.lstart && (i+1) <= position.lend) && position.lstart != position.lend {
+		} else if ((i+1) >= position.Lstart && (i+1) <= position.Lend) && position.Lstart != position.Lend {
 			indicator = "~"
 		}
 

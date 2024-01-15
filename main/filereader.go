@@ -1,6 +1,6 @@
 package main
-import "os"
 
+import "os"
 
 func ReadFile(filePath string) string {
 	data, err := os.ReadFile(filePath)

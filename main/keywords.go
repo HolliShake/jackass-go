@@ -1,6 +1,6 @@
 package main
 
-var KEYWORDS []string = []string {
+var KEYWORDS []string = []string{
 	"import",
 	"from",
 	"class",
@@ -37,4 +37,3 @@ func isKeyword(value string) bool {
 
 	return false
 }
-

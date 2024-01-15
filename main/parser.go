@@ -1,23 +1,26 @@
 package main
+
 import (
 	"fmt"
 	"strings"
-	"github.com/jackass/jutil"
+
+	"jackass/ast"
+	"jackass/jutil"
 )
 
 const (
-	MAX_MEMBER_ACCESS int = 50
-	MAX_INDEXING int = 50
-	MAX_CALL int = 50
+	MAX_MEMBER_ACCESS      int = 50
+	MAX_INDEXING           int = 50
+	MAX_CALL               int = 50
 	MAX_EXPRESSION_NESTING int = 100
-	// 
-	MAX_ARGS int = 255
+	//
+	MAX_ARGS            int = 255
 	MAX_STATIC_ELEMENTS int = 512
 )
 
 type parser_t struct {
-	lexer *lexer_t
-	lookahead, previous *token_t
+	lexer                                                   *lexer_t
+	lookahead, previous                                     *token_t
 	memberAccess, indexingLevel, callLevel, expressionLevel int
 }
 
@@ -79,18 +82,19 @@ func (p *parser_t) acceptT(tokenKind TokenKind) {
 	if p.checkT(tokenKind) {
 		p.previous, p.lookahead = p.lookahead, p.lexer.nextToken()
 	} else {
-		raiseError(p, fmt.Sprintf("unexpected token \"%s\".", p.lookahead.value), p.lookahead.position)
+		raiseError(p, fmt.Sprintf("unexpected token \"%s\".", p.lookahead.value), p.lookahead.Position)
 	}
 }
 
 // acceptV accepts lookahead value
 // @param value string
+//
 //lint:ignore U1000 disable unused
 func (p *parser_t) acceptV(value string) {
 	if p.checkV(value) {
 		p.previous, p.lookahead = p.lookahead, p.lexer.nextToken()
 	} else {
-		raiseError(p, fmt.Sprintf("unexpected token \"%s\", Did you mean \"%s\"", p.lookahead.value, value), p.lookahead.position)
+		raiseError(p, fmt.Sprintf("unexpected token \"%s\", Did you mean \"%s\"", p.lookahead.value, value), p.lookahead.Position)
 	}
 }
 
@@ -100,7 +104,7 @@ func (p *parser_t) acceptS(symbol string) {
 	if p.checkS(symbol) {
 		p.previous, p.lookahead = p.lookahead, p.lexer.nextToken()
 	} else {
-		raiseError(p, fmt.Sprintf("unexpected token \"%s\", Did you mean \"%s\"", p.lookahead.value, symbol), p.lookahead.position)
+		raiseError(p, fmt.Sprintf("unexpected token \"%s\", Did you mean \"%s\"", p.lookahead.value, symbol), p.lookahead.Position)
 	}
 }
 
@@ -110,107 +114,125 @@ func (p *parser_t) acceptK(keyword string) {
 	if p.checkK(keyword) {
 		p.previous, p.lookahead = p.lookahead, p.lexer.nextToken()
 	} else {
-		raiseError(p, fmt.Sprintf("unexpected token \"%s\", Did you mean \"%s\"", p.lookahead.value, keyword), p.lookahead.position)
+		raiseError(p, fmt.Sprintf("unexpected token \"%s\", Did you mean \"%s\"", p.lookahead.value, keyword), p.lookahead.Position)
 	}
 }
 
-func (p *parser_t) parseTerminal() *node_t {
+func (p *parser_t) parseTerminal() *ast.Node_t {
 	switch p.lookahead.kind {
-		case TKIND_ID:
-			node := TerminalNode(
-				NT_ID, 
-				p.lookahead.value, 
-				p.lookahead.position,
+	case TKIND_ID:
+		node := ast.TerminalNode(
+			ast.NT_ID,
+			p.lookahead.value,
+			p.lookahead.Position,
+		)
+		p.acceptT(TKIND_ID)
+		return node
+	case TKIND_INTEGER:
+		node := ast.TerminalNode(
+			ast.NT_INTEGER,
+			p.lookahead.value,
+			p.lookahead.Position,
+		)
+		p.acceptT(TKIND_INTEGER)
+		return node
+	case TKIND_BIG_INTEGER:
+		node := ast.TerminalNode(
+			ast.NT_BIG_INTEGER,
+			p.lookahead.value,
+			p.lookahead.Position,
+		)
+		p.acceptT(TKIND_BIG_INTEGER)
+		return node
+	case TKIND_OTHER_INTEGER:
+		node := ast.TerminalNode(
+			ast.NT_OTHER_INTEGER,
+			p.lookahead.value,
+			p.lookahead.Position,
+		)
+		p.acceptT(TKIND_OTHER_INTEGER)
+		return node
+	case TKIND_OTHER_BIG_INTEGER:
+		node := ast.TerminalNode(
+			ast.NT_OTHER_BIG_INTEGER,
+			p.lookahead.value,
+			p.lookahead.Position,
+		)
+		p.acceptT(TKIND_OTHER_BIG_INTEGER)
+		return node
+	case TKIND_FLOAT:
+		node := ast.TerminalNode(
+			ast.NT_FLOAT,
+			p.lookahead.value,
+			p.lookahead.Position,
+		)
+		p.acceptT(TKIND_FLOAT)
+		return node
+	case TKIND_OTHER_FLOAT:
+		node := ast.TerminalNode(
+			ast.NT_OTHER_FLOAT,
+			p.lookahead.value,
+			p.lookahead.Position,
+		)
+		p.acceptT(TKIND_OTHER_FLOAT)
+		return node
+	case TKIND_STRING:
+		node := ast.TerminalNode(
+			ast.NT_STRING,
+			p.lookahead.value,
+			p.lookahead.Position,
+		)
+		p.acceptT(TKIND_STRING)
+		return node
+	case TKIND_KEYWORD:
+		if p.checkK("true") || p.checkK("false") {
+			node := ast.TerminalNode(
+				ast.NT_BOOLEAN,
+				p.lookahead.value,
+				p.lookahead.Position,
 			)
-			p.acceptT(TKIND_ID)
+			p.acceptT(TKIND_KEYWORD)
 			return node
-		case TKIND_INTEGER:
-			node := TerminalNode(
-				NT_INTEGER, 
-				p.lookahead.value, 
-				p.lookahead.position,
+		} else if p.checkK("null") {
+			node := ast.TerminalNode(
+				ast.NT_NULL,
+				p.lookahead.value,
+				p.lookahead.Position,
 			)
-			p.acceptT(TKIND_INTEGER)
+			p.acceptT(TKIND_KEYWORD)
 			return node
-		case TKIND_BIG_INTEGER:
-			node := TerminalNode(
-				NT_BIG_INTEGER, 
-				p.lookahead.value, 
-				p.lookahead.position,
-			)
-			p.acceptT(TKIND_BIG_INTEGER)
-			return node
-		case TKIND_OTHER_INTEGER:
-			node := TerminalNode(
-				NT_OTHER_INTEGER, 
-				p.lookahead.value, 
-				p.lookahead.position,
-			)
-			p.acceptT(TKIND_OTHER_INTEGER)
-			return node
-		case TKIND_OTHER_BIG_INTEGER:
-			node := TerminalNode(
-				NT_OTHER_BIG_INTEGER, 
-				p.lookahead.value, 
-				p.lookahead.position,
-			)
-			p.acceptT(TKIND_OTHER_BIG_INTEGER)
-			return node
-		case TKIND_FLOAT:
-			node := TerminalNode(
-				NT_FLOAT, 
-				p.lookahead.value, 
-				p.lookahead.position,
-			)
-			p.acceptT(TKIND_FLOAT)
-			return node
-		case TKIND_OTHER_FLOAT:
-			node := TerminalNode(
-				NT_OTHER_FLOAT, 
-				p.lookahead.value, 
-				p.lookahead.position,
-			)
-			p.acceptT(TKIND_OTHER_FLOAT)
-			return node
-		case TKIND_STRING:
-			node := TerminalNode(
-				NT_STRING, 
-				p.lookahead.value, 
-				p.lookahead.position,
-			)
-			p.acceptT(TKIND_STRING)
-			return node
-		case TKIND_KEYWORD: 
-			if p.checkK("true") || p.checkK("false") {
-				node := TerminalNode(
-					NT_BOOLEAN, 
-					p.lookahead.value, 
-					p.lookahead.position,
-				)
-				p.acceptT(TKIND_KEYWORD)
-				return node
-			} else if p.checkK("null") {
-				node := TerminalNode(
-					NT_NULL, 
-					p.lookahead.value, 
-					p.lookahead.position,
-				)
-				p.acceptT(TKIND_KEYWORD)
-				return node
-			} else if p.checkK("self") {
-				panic("Not implemented self!!!")
-			} else if p.checkK("super") {
-				panic("Not implemented super!!!")
-			} else if p.checkK("function") {
-				start := p.lookahead.position
-				p.acceptK("function")
-				p.acceptS("(")
-				
-				var count int = 0
-				var parameters *[][]interface{} = new([][]interface{})
+		} else if p.checkK("self") {
+			panic("Not implemented self!!!")
+		} else if p.checkK("super") {
+			panic("Not implemented super!!!")
+		} else if p.checkK("function") {
+			start := p.lookahead.Position
+			p.acceptK("function")
+			p.acceptS("(")
 
-				if p.checkT(TKIND_ID) {
-					count++
+			var count int = 0
+			var parameters *[][]interface{} = new([][]interface{})
+
+			if p.checkT(TKIND_ID) {
+				count++
+				param := p.lookahead.value
+				p.acceptT(TKIND_ID)
+
+				if p.checkS("...") {
+					// Variadic parameter
+					p.acceptS("...")
+					param = fmt.Sprintf("%s...", param)
+				}
+
+				*parameters = append(*parameters, []interface{}{param, p.previous.Position})
+
+				for p.checkS(",") {
+					p.acceptS(",")
+
+					if !p.checkT(TKIND_ID) {
+						raiseError(p, "missing parameter after \",\".", p.lookahead.Position)
+					}
+
 					param := p.lookahead.value
 					p.acceptT(TKIND_ID)
 
@@ -220,68 +242,50 @@ func (p *parser_t) parseTerminal() *node_t {
 						param = fmt.Sprintf("%s...", param)
 					}
 
-					*parameters = append(*parameters, []interface{}{param, p.previous.position})
+					*parameters = append(*parameters, []interface{}{param, p.previous.Position})
+					count++
 
-					for p.checkS(",") {
-						p.acceptS(",")
-
-						if !p.checkT(TKIND_ID) {
-							raiseError(p, "missing parameter after \",\".", p.lookahead.position)
-						}
-						
-						param := p.lookahead.value
-						p.acceptT(TKIND_ID)
-
-						if p.checkS("...") {
-							// Variadic parameter
-							p.acceptS("...")
-							param = fmt.Sprintf("%s...", param)
-						}
-
-						*parameters = append(*parameters, []interface{}{param, p.previous.position})
-						count++
-
-						if count > MAX_ARGS {
-							break
-						}
+					if count > MAX_ARGS {
+						break
 					}
 				}
-
-				p.acceptS(")")
-
-				if count > MAX_ARGS {
-					raiseError(p, "too many parameters. Try variadict function.", p.lookahead.position)
-				}
-
-				p.acceptS("{")
-
-				var body *[]*node_t = new([]*node_t)
-
-				bodyN := p.parseCompoundStatement()
-
-				for bodyN != nil {
-					*body = append(*body, bodyN)
-					bodyN = p.parseCompoundStatement()
-				}
-
-				p.acceptS("}")
-				end := p.previous.position
-
-				return HeadlessFunctionNode(parameters, body, start.merge(end))
 			}
+
+			p.acceptS(")")
+
+			if count > MAX_ARGS {
+				raiseError(p, "too many parameters. Try variadict function.", p.lookahead.Position)
+			}
+
+			p.acceptS("{")
+
+			var body *[]*ast.Node_t = new([]*ast.Node_t)
+
+			bodyN := p.parseCompoundStatement()
+
+			for bodyN != nil {
+				*body = append(*body, bodyN)
+				bodyN = p.parseCompoundStatement()
+			}
+
+			p.acceptS("}")
+			end := p.previous.Position
+
+			return ast.HeadlessFunctionNode(parameters, body, start.Merge(end))
+		}
 	}
 
 	return nil
 }
 
-func (p *parser_t) parseGroup() *node_t {
-	if p.checkS("[") { 
+func (p *parser_t) parseGroup() *ast.Node_t {
+	if p.checkS("[") {
 		// '[' zeroOrOneExpression (',' mandatoryExpression)+ ']'
-		start := p.lookahead.position
+		start := p.lookahead.Position
 		p.acceptS("[")
 
 		var count int = 0
-		var elements *[]*node_t = new([]*node_t)
+		var elements *[]*ast.Node_t = new([]*ast.Node_t)
 
 		elementN := p.parseZeroOrOneExpression()
 		if elementN != nil {
@@ -301,39 +305,39 @@ func (p *parser_t) parseGroup() *node_t {
 		}
 
 		p.acceptS("]")
-		end := p.previous.position
+		end := p.previous.Position
 
 		if count > MAX_STATIC_ELEMENTS {
-			raiseError(p, fmt.Sprintf("too many elements %d, max %d", count, MAX_STATIC_ELEMENTS), start.merge(end))
+			raiseError(p, fmt.Sprintf("too many elements %d, max %d", count, MAX_STATIC_ELEMENTS), start.Merge(end))
 		}
 
-		return ArrayNode(elements, start.merge(end))
+		return ast.ArrayNode(elements, start.Merge(end))
 
 	} else if p.checkS("{") {
 		// '{' (zeroOrOneExpression ':' mandatoryExpression)? (',' zeroOrOneExpression ':' mandatoryExpression)+ '}'
-		start := p.lookahead.position
+		start := p.lookahead.Position
 		p.acceptS("{")
 
 		var count int = 0
-		var pairs *[][]*node_t = new([][]*node_t)
+		var pairs *[][]*ast.Node_t = new([][]*ast.Node_t)
 
 		keyN := p.parseZeroOrOneExpression()
 		if keyN != nil {
 			count++
 			p.acceptS(":")
 			valueN := p.parseMandatoryExpression()
-			*pairs = append(*pairs, []*node_t{keyN, valueN})
+			*pairs = append(*pairs, []*ast.Node_t{keyN, valueN})
 
 			for p.checkS(",") {
 				p.acceptS(",")
 				keyN = p.parseZeroOrOneExpression()
 				if keyN == nil {
-					raiseError(p, "missing key after \",\".", p.lookahead.position)
+					raiseError(p, "missing key after \",\".", p.lookahead.Position)
 				}
 
 				p.acceptS(":")
 				valueN = p.parseMandatoryExpression()
-				*pairs = append(*pairs, []*node_t{keyN, valueN})
+				*pairs = append(*pairs, []*ast.Node_t{keyN, valueN})
 				count++
 
 				if count >= int(jutil.MAX_SAFE_INDEX) {
@@ -343,13 +347,13 @@ func (p *parser_t) parseGroup() *node_t {
 		}
 
 		p.acceptS("}")
-		end := p.previous.position
+		end := p.previous.Position
 
 		if count > MAX_STATIC_ELEMENTS {
-			raiseError(p, fmt.Sprintf("too many elements %d, max %d", count, MAX_STATIC_ELEMENTS), start.merge(end))
+			raiseError(p, fmt.Sprintf("too many elements %d, max %d", count, MAX_STATIC_ELEMENTS), start.Merge(end))
 		}
 
-		return ObjectNode(pairs, start.merge(end))
+		return ast.ObjectNode(pairs, start.Merge(end))
 
 	} else if p.checkS("(") {
 		// '(' mandatoryExpression ')'
@@ -363,7 +367,7 @@ func (p *parser_t) parseGroup() *node_t {
 	}
 }
 
-func (p *parser_t) parseMemberOrCall() *node_t {
+func (p *parser_t) parseMemberOrCall() *ast.Node_t {
 	node := p.parseGroup()
 
 	if node == nil {
@@ -381,7 +385,7 @@ func (p *parser_t) parseMemberOrCall() *node_t {
 		if p.checkS(".") {
 			p.memberAccess += 1
 			if p.memberAccess > MAX_MEMBER_ACCESS {
-				raiseError(p, "member access nesting level too deep.", node.position.merge(p.previous.position))
+				raiseError(p, "member access nesting level too deep.", node.Position.Merge(p.previous.Position))
 			}
 
 			// (. TKIND_ID)
@@ -390,11 +394,11 @@ func (p *parser_t) parseMemberOrCall() *node_t {
 			member := p.lookahead.value
 			p.acceptT(TKIND_ID)
 
-			node = MemberAccess(node, member, node.position.merge(p.previous.position))
+			node = ast.MemberAccess(node, member, node.Position.Merge(p.previous.Position))
 		} else if p.checkS("[") {
 			p.indexingLevel += 1
 			if p.indexingLevel > MAX_INDEXING {
-				raiseError(p, "subscription nesting level too deep.", node.position.merge(p.previous.position))
+				raiseError(p, "subscription nesting level too deep.", node.Position.Merge(p.previous.Position))
 			}
 
 			// '[' mandatoryExpression ']'
@@ -402,17 +406,17 @@ func (p *parser_t) parseMemberOrCall() *node_t {
 			expr := p.parseMandatoryExpression()
 			p.acceptS("]")
 
-			node = IndexAccess(node, expr, node.position.merge(p.previous.position))
+			node = ast.IndexAccess(node, expr, node.Position.Merge(p.previous.Position))
 		} else if p.checkS("(") {
 			p.callLevel += 1
 			if p.callLevel > MAX_CALL {
-				raiseError(p, "call nesting level too deep.", node.position.merge(p.previous.position))
+				raiseError(p, "call nesting level too deep.", node.Position.Merge(p.previous.Position))
 			}
 
 			// '(' mandatoryExpression ')'
 			p.acceptS("(")
 
-			var args *[]*node_t = new([]*node_t)
+			var args *[]*ast.Node_t = new([]*ast.Node_t)
 
 			argN := p.parseZeroOrOneExpression()
 
@@ -427,14 +431,14 @@ func (p *parser_t) parseMemberOrCall() *node_t {
 
 					argc += 1
 					if argc > MAX_ARGS {
-						raiseError(p, fmt.Sprintf("too many arguments, max 255 got %d.", argc), p.lookahead.position)
+						raiseError(p, fmt.Sprintf("too many arguments, max 255 got %d.", argc), p.lookahead.Position)
 					}
 				}
 			}
 
 			p.acceptS(")")
 
-			node = Call(node, args, node.position.merge(p.previous.position))
+			node = ast.Call(node, args, node.Position.Merge(p.previous.Position))
 		}
 	}
 
@@ -448,7 +452,7 @@ func (p *parser_t) parseMemberOrCall() *node_t {
 	return node
 }
 
-func (p *parser_t) parsePostfix() *node_t {
+func (p *parser_t) parsePostfix() *ast.Node_t {
 	node := p.parseMemberOrCall()
 
 	if node == nil {
@@ -459,29 +463,29 @@ func (p *parser_t) parsePostfix() *node_t {
 		operator := p.lookahead
 		p.acceptS(operator.value)
 
-		return PostfixExpressionNode(operator.value, node, node.position.merge(p.previous.position))
+		return ast.PostfixExpressionNode(operator.value, node, node.Position.Merge(p.previous.Position))
 	} else if p.checkS("?") {
 		p.acceptS("?")
 
 		trueval := p.parseZeroOrOneExpression()
 		if trueval == nil {
-			raiseError(p, "missing true value after \"?\".", p.lookahead.position)
+			raiseError(p, "missing true value after \"?\".", p.lookahead.Position)
 		}
 
 		p.acceptS(":")
 
 		falseval := p.parseZeroOrOneExpression()
 		if falseval == nil {
-			raiseError(p, "missing false value after \":\".", p.lookahead.position)
+			raiseError(p, "missing false value after \":\".", p.lookahead.Position)
 		}
-		
-		return TernaryExpressionNode(node, trueval, falseval, node.position.merge(p.previous.position))
+
+		return ast.TernaryExpressionNode(node, trueval, falseval, node.Position.Merge(p.previous.Position))
 	}
 
 	return node
 }
 
-func (p *parser_t) parseUnary() *node_t {
+func (p *parser_t) parseUnary() *ast.Node_t {
 	if p.checkS("+") || p.checkS("-") || p.checkS("!") || p.checkS("~") || p.checkS("++") || p.checkS("--") {
 		operator := p.lookahead
 		p.acceptS(operator.value)
@@ -489,19 +493,19 @@ func (p *parser_t) parseUnary() *node_t {
 		// Watch recursion
 		operand := p.parseUnary()
 		if operand == nil {
-			raiseError(p, fmt.Sprintf("missing operand after \"%s\".", operator.value), operator.position)
+			raiseError(p, fmt.Sprintf("missing operand after \"%s\".", operator.value), operator.Position)
 		}
 
-		return UnaryExpressionNode(operator.value, operand, operator.position.merge(p.previous.position))
+		return ast.UnaryExpressionNode(operator.value, operand, operator.Position.Merge(p.previous.Position))
 	} else {
 		return p.parsePostfix()
 	}
 }
 
-func (p *parser_t) parseMul() *node_t {
+func (p *parser_t) parseMul() *ast.Node_t {
 	node := p.parseUnary()
 
-	if node == nil { 
+	if node == nil {
 		return node
 	}
 
@@ -510,7 +514,7 @@ func (p *parser_t) parseMul() *node_t {
 
 		p.expressionLevel += 1
 		if p.expressionLevel > MAX_EXPRESSION_NESTING {
-			raiseError(p, "expression nesting too deep.", p.lookahead.position)
+			raiseError(p, "expression nesting too deep.", p.lookahead.Position)
 		}
 
 		operator := p.lookahead
@@ -518,21 +522,21 @@ func (p *parser_t) parseMul() *node_t {
 
 		rhs := p.parseUnary()
 
-		if rhs == nil { 
-			raiseError(p, fmt.Sprintf("missing right-hand expression after \"%s\".", p.previous.value), operator.position)
+		if rhs == nil {
+			raiseError(p, fmt.Sprintf("missing right-hand expression after \"%s\".", p.previous.value), operator.Position)
 		}
 
-		node = BinaryExpressionNode(NT_BINARY_EXPRESSION, operator.value, node, rhs)
+		node = ast.BinaryExpressionNode(ast.NT_BINARY_EXPRESSION, operator.value, node, rhs)
 	}
 
 	p.expressionLevel = tmp
 	return node
 }
 
-func (p *parser_t) parseAdd() *node_t {
+func (p *parser_t) parseAdd() *ast.Node_t {
 	node := p.parseMul()
 
-	if node == nil { 
+	if node == nil {
 		return node
 	}
 
@@ -541,7 +545,7 @@ func (p *parser_t) parseAdd() *node_t {
 
 		p.expressionLevel += 1
 		if p.expressionLevel > MAX_EXPRESSION_NESTING {
-			raiseError(p, "expression nesting too deep.", p.lookahead.position)
+			raiseError(p, "expression nesting too deep.", p.lookahead.Position)
 		}
 
 		operator := p.lookahead
@@ -549,21 +553,21 @@ func (p *parser_t) parseAdd() *node_t {
 
 		rhs := p.parseMul()
 
-		if rhs == nil { 
-			raiseError(p, fmt.Sprintf("missing right-hand expression after \"%s\".", p.previous.value), operator.position)
+		if rhs == nil {
+			raiseError(p, fmt.Sprintf("missing right-hand expression after \"%s\".", p.previous.value), operator.Position)
 		}
 
-		node = BinaryExpressionNode(NT_BINARY_EXPRESSION, operator.value, node, rhs)
+		node = ast.BinaryExpressionNode(ast.NT_BINARY_EXPRESSION, operator.value, node, rhs)
 	}
 
 	p.expressionLevel = tmp
 	return node
 }
 
-func (p *parser_t) parseShift() *node_t {
+func (p *parser_t) parseShift() *ast.Node_t {
 	node := p.parseAdd()
 
-	if node == nil { 
+	if node == nil {
 		return node
 	}
 
@@ -572,7 +576,7 @@ func (p *parser_t) parseShift() *node_t {
 
 		p.expressionLevel += 1
 		if p.expressionLevel > MAX_EXPRESSION_NESTING {
-			raiseError(p, "expression nesting too deep.", p.lookahead.position)
+			raiseError(p, "expression nesting too deep.", p.lookahead.Position)
 		}
 
 		operator := p.lookahead
@@ -580,21 +584,21 @@ func (p *parser_t) parseShift() *node_t {
 
 		rhs := p.parseAdd()
 
-		if rhs == nil { 
-			raiseError(p, fmt.Sprintf("missing right-hand expression after \"%s\".", p.previous.value), operator.position)
+		if rhs == nil {
+			raiseError(p, fmt.Sprintf("missing right-hand expression after \"%s\".", p.previous.value), operator.Position)
 		}
 
-		node = BinaryExpressionNode(NT_BINARY_EXPRESSION, operator.value, node, rhs)
+		node = ast.BinaryExpressionNode(ast.NT_BINARY_EXPRESSION, operator.value, node, rhs)
 	}
 
 	p.expressionLevel = tmp
 	return node
 }
 
-func (p *parser_t) parseRel() *node_t {
+func (p *parser_t) parseRel() *ast.Node_t {
 	node := p.parseShift()
 
-	if node == nil { 
+	if node == nil {
 		return node
 	}
 
@@ -603,7 +607,7 @@ func (p *parser_t) parseRel() *node_t {
 
 		p.expressionLevel += 1
 		if p.expressionLevel > MAX_EXPRESSION_NESTING {
-			raiseError(p, "expression nesting too deep.", p.lookahead.position)
+			raiseError(p, "expression nesting too deep.", p.lookahead.Position)
 		}
 
 		operator := p.lookahead
@@ -611,21 +615,21 @@ func (p *parser_t) parseRel() *node_t {
 
 		rhs := p.parseShift()
 
-		if rhs == nil { 
-			raiseError(p, fmt.Sprintf("missing right-hand expression after \"%s\".", p.previous.value), operator.position)
+		if rhs == nil {
+			raiseError(p, fmt.Sprintf("missing right-hand expression after \"%s\".", p.previous.value), operator.Position)
 		}
 
-		node = BinaryExpressionNode(NT_BINARY_EXPRESSION, operator.value, node, rhs)
+		node = ast.BinaryExpressionNode(ast.NT_BINARY_EXPRESSION, operator.value, node, rhs)
 	}
 
 	p.expressionLevel = tmp
 	return node
 }
 
-func (p *parser_t) parseEql() *node_t {
+func (p *parser_t) parseEql() *ast.Node_t {
 	node := p.parseRel()
 
-	if node == nil { 
+	if node == nil {
 		return node
 	}
 
@@ -634,7 +638,7 @@ func (p *parser_t) parseEql() *node_t {
 
 		p.expressionLevel += 1
 		if p.expressionLevel > MAX_EXPRESSION_NESTING {
-			raiseError(p, "expression nesting too deep.", p.lookahead.position)
+			raiseError(p, "expression nesting too deep.", p.lookahead.Position)
 		}
 
 		operator := p.lookahead
@@ -642,21 +646,21 @@ func (p *parser_t) parseEql() *node_t {
 
 		rhs := p.parseRel()
 
-		if rhs == nil { 
-			raiseError(p, fmt.Sprintf("missing right-hand expression after \"%s\".", p.previous.value), operator.position)
+		if rhs == nil {
+			raiseError(p, fmt.Sprintf("missing right-hand expression after \"%s\".", p.previous.value), operator.Position)
 		}
 
-		node = BinaryExpressionNode(NT_BINARY_EXPRESSION, operator.value, node, rhs)
+		node = ast.BinaryExpressionNode(ast.NT_BINARY_EXPRESSION, operator.value, node, rhs)
 	}
 
 	p.expressionLevel = tmp
 	return node
 }
 
-func (p *parser_t) parseBit() *node_t {
+func (p *parser_t) parseBit() *ast.Node_t {
 	node := p.parseEql()
 
-	if node == nil { 
+	if node == nil {
 		return node
 	}
 
@@ -665,7 +669,7 @@ func (p *parser_t) parseBit() *node_t {
 
 		p.expressionLevel += 1
 		if p.expressionLevel > MAX_EXPRESSION_NESTING {
-			raiseError(p, "expression nesting too deep.", p.lookahead.position)
+			raiseError(p, "expression nesting too deep.", p.lookahead.Position)
 		}
 
 		operator := p.lookahead
@@ -673,21 +677,21 @@ func (p *parser_t) parseBit() *node_t {
 
 		rhs := p.parseEql()
 
-		if rhs == nil { 
-			raiseError(p, fmt.Sprintf("missing right-hand expression after \"%s\".", p.previous.value), operator.position)
+		if rhs == nil {
+			raiseError(p, fmt.Sprintf("missing right-hand expression after \"%s\".", p.previous.value), operator.Position)
 		}
 
-		node = BinaryExpressionNode(NT_BINARY_EXPRESSION, operator.value, node, rhs)
+		node = ast.BinaryExpressionNode(ast.NT_BINARY_EXPRESSION, operator.value, node, rhs)
 	}
 
 	p.expressionLevel = tmp
 	return node
 }
 
-func (p *parser_t) parseLog() *node_t {
+func (p *parser_t) parseLog() *ast.Node_t {
 	node := p.parseBit()
 
-	if node == nil { 
+	if node == nil {
 		return node
 	}
 
@@ -696,7 +700,7 @@ func (p *parser_t) parseLog() *node_t {
 
 		p.expressionLevel += 1
 		if p.expressionLevel > MAX_EXPRESSION_NESTING {
-			raiseError(p, "expression nesting too deep.", p.lookahead.position)
+			raiseError(p, "expression nesting too deep.", p.lookahead.Position)
 		}
 
 		operator := p.lookahead
@@ -704,30 +708,30 @@ func (p *parser_t) parseLog() *node_t {
 
 		rhs := p.parseBit()
 
-		if rhs == nil { 
-			raiseError(p, fmt.Sprintf("missing right-hand expression after \"%s\".", p.previous.value), operator.position)
+		if rhs == nil {
+			raiseError(p, fmt.Sprintf("missing right-hand expression after \"%s\".", p.previous.value), operator.Position)
 		}
 
-		node = BinaryExpressionNode(NT_LOGICAL_EXPRESSION, operator.value, node, rhs)
+		node = ast.BinaryExpressionNode(ast.NT_LOGICAL_EXPRESSION, operator.value, node, rhs)
 	}
 
 	p.expressionLevel = tmp
 	return node
 }
 
-func (p *parser_t) parseAss() *node_t {
+func (p *parser_t) parseAss() *ast.Node_t {
 	node := p.parseLog()
 
-	if node == nil { 
+	if node == nil {
 		return node
 	}
 
 	tmp := p.expressionLevel
-	for p.checkS("="){
+	for p.checkS("=") {
 
 		p.expressionLevel += 1
 		if p.expressionLevel > MAX_EXPRESSION_NESTING {
-			raiseError(p, "expression nesting too deep.", p.lookahead.position)
+			raiseError(p, "expression nesting too deep.", p.lookahead.Position)
 		}
 
 		operator := p.lookahead
@@ -735,21 +739,21 @@ func (p *parser_t) parseAss() *node_t {
 
 		rhs := p.parseLog()
 
-		if rhs == nil { 
-			raiseError(p, fmt.Sprintf("missing right-hand expression after \"%s\".", p.previous.value), operator.position)
+		if rhs == nil {
+			raiseError(p, fmt.Sprintf("missing right-hand expression after \"%s\".", p.previous.value), operator.Position)
 		}
 
-		node = BinaryExpressionNode(NT_LOGICAL_EXPRESSION, operator.value, node, rhs)
+		node = ast.BinaryExpressionNode(ast.NT_LOGICAL_EXPRESSION, operator.value, node, rhs)
 	}
 
 	p.expressionLevel = tmp
 	return node
 }
 
-func (p *parser_t) parseAug() *node_t {
+func (p *parser_t) parseAug() *ast.Node_t {
 	node := p.parseAss()
 
-	if node == nil { 
+	if node == nil {
 		return node
 	}
 
@@ -758,7 +762,7 @@ func (p *parser_t) parseAug() *node_t {
 
 		p.expressionLevel += 1
 		if p.expressionLevel > MAX_EXPRESSION_NESTING {
-			raiseError(p, "expression nesting too deep.", p.lookahead.position)
+			raiseError(p, "expression nesting too deep.", p.lookahead.Position)
 		}
 
 		operator := p.lookahead
@@ -766,111 +770,110 @@ func (p *parser_t) parseAug() *node_t {
 
 		rhs := p.parseAss()
 
-		if rhs == nil { 
-			raiseError(p, fmt.Sprintf("missing right-hand expression after \"%s\".", p.previous.value), operator.position)
+		if rhs == nil {
+			raiseError(p, fmt.Sprintf("missing right-hand expression after \"%s\".", p.previous.value), operator.Position)
 		}
 
-		node = BinaryExpressionNode(NT_LOGICAL_EXPRESSION, operator.value, node, rhs)
+		node = ast.BinaryExpressionNode(ast.NT_LOGICAL_EXPRESSION, operator.value, node, rhs)
 	}
 
 	p.expressionLevel = tmp
 	return node
 }
 
-func (p *parser_t) parseZeroOrOneExpression() *node_t {
+func (p *parser_t) parseZeroOrOneExpression() *ast.Node_t {
 	return p.parseAug()
 }
 
-func (p *parser_t) parseMandatoryExpression() *node_t {
+func (p *parser_t) parseMandatoryExpression() *ast.Node_t {
 	node := p.parseZeroOrOneExpression()
 	if node != nil {
 		return node
 	}
 
 	// error
-	raiseError(p, fmt.Sprintf("an expression is required, got \"%s\".", p.lookahead.value), p.lookahead.position)
+	raiseError(p, fmt.Sprintf("an expression is required, got \"%s\".", p.lookahead.value), p.lookahead.Position)
 	return nil
 }
 
-// 
-func (p *parser_t) parseSimpleStatement() *node_t {
+func (p *parser_t) parseSimpleStatement() *ast.Node_t {
 	switch p.lookahead.value {
-		case "var", "let", "const":
-			start := p.lookahead.position
-			var ntype NodeType
+	case "var", "let", "const":
+		start := p.lookahead.Position
+		var ntype ast.NodeType
 
-			if strings.Compare(p.lookahead.value, "var") == 0 {
-				ntype = NT_VARIABLE_DEC
-				p.acceptK("var")
-			} else if strings.Compare(p.lookahead.value, "let") == 0 {
-				ntype = NT_LOCAL_DEC
-				p.acceptK("let")
+		if strings.Compare(p.lookahead.value, "var") == 0 {
+			ntype = ast.NT_VARIABLE_DEC
+			p.acceptK("var")
+		} else if strings.Compare(p.lookahead.value, "let") == 0 {
+			ntype = ast.NT_LOCAL_DEC
+			p.acceptK("let")
+		} else {
+			ntype = ast.NT_CONST_DEC
+			p.acceptK("const")
+		}
+
+		if !p.checkT(TKIND_ID) {
+			raiseError(p, fmt.Sprintf("variable name is required after \"%s\", got \"%s\".", p.previous.value, p.lookahead.value), p.lookahead.Position)
+		}
+
+		declairations := new([][]interface{})
+
+		for p.checkT(TKIND_ID) {
+			variable := p.lookahead.value
+			position := p.lookahead.Position
+			p.acceptT(TKIND_ID)
+
+			var value *ast.Node_t = nil
+
+			if p.checkS("=") {
+				p.acceptS("=")
+				value = p.parseMandatoryExpression()
+			}
+
+			*declairations = append(*declairations, []interface{}{variable, position, value})
+
+			if !p.checkS(",") {
+				break
 			} else {
-				ntype = NT_CONST_DEC
-				p.acceptK("const")
+				p.acceptS(",")
 			}
 
 			if !p.checkT(TKIND_ID) {
-				raiseError(p, fmt.Sprintf("variable name is required after \"%s\", got \"%s\".", p.previous.value, p.lookahead.value), p.lookahead.position)
+				raiseError(p, fmt.Sprintf("variable name is required after \"%s\", got \"%s\".", p.previous.value, p.lookahead.value), p.previous.Position)
 			}
+		}
 
-			declairations := new([][]interface{})
+		p.acceptS(";")
 
-			for p.checkT(TKIND_ID) {
-				variable := p.lookahead.value
-				position := p.lookahead.position
-				p.acceptT(TKIND_ID)
+		return ast.VariableDeclairationNode(ntype, declairations, start.Merge(p.previous.Position))
 
-				var value *node_t = nil
-
-				if p.checkS("=") {
-					p.acceptS("=")
-					value = p.parseMandatoryExpression()
-				}
-
-				*declairations = append(*declairations, []interface{}{variable, position, value})
-
-				if (!p.checkS(",")) {
-					break
-				} else {
-					p.acceptS(",")
-				}
-
-				if !p.checkT(TKIND_ID) {
-					raiseError(p, fmt.Sprintf("variable name is required after \"%s\", got \"%s\".", p.previous.value, p.lookahead.value), p.previous.position)
-				}
-			}
-
+	case ";":
+		for p.checkS(";") {
 			p.acceptS(";")
+		}
 
-			return VariableDeclairationNode(ntype, declairations, start.merge(p.previous.position))
-		
-		case ";":
-			for p.checkS(";") {
-				p.acceptS(";")
-			}
+		return ast.EmptyExpressionNode(p.previous.Position)
 
-			return EmptyExpressionNode(p.previous.position)
+	default:
+		node := p.parseZeroOrOneExpression()
 
-		default:
-			node := p.parseZeroOrOneExpression()
+		if node == nil {
+			return node
+		}
 
-			if node == nil {
-				return node
-			}
+		p.acceptS(";")
 
-			p.acceptS(";")
-
-			return ExpressionStatementNode(node, node.position.merge(p.previous.position))
+		return ast.ExpressionStatementNode(node, node.Position.Merge(p.previous.Position))
 	}
 }
 
-func (p *parser_t) parseCompoundStatement() *node_t {
+func (p *parser_t) parseCompoundStatement() *ast.Node_t {
 	return p.parseSimpleStatement()
 }
 
-func (p *parser_t) parseFile() *node_t {
-	body := new([]*node_t)
+func (p *parser_t) parseFile() *ast.Node_t {
+	body := new([]*ast.Node_t)
 
 	stmntN := p.parseCompoundStatement()
 
@@ -882,10 +885,10 @@ func (p *parser_t) parseFile() *node_t {
 	// Eof
 	p.acceptT(TKIND_EOF)
 
-	return FileNode(body)
+	return ast.FileNode(body)
 }
 
-func (p *parser_t) parse() *node_t {
+func (p *parser_t) parse() *ast.Node_t {
 	p.lookahead, p.previous = p.lexer.nextToken(), p.lookahead
 	return p.parseFile()
 }

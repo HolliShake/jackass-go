@@ -1,13 +1,13 @@
 package main
+
 import (
-	"os"
 	"fmt"
+	"os"
 )
 
 type jackass_t struct {
 	args []string
 }
-
 
 func JackAss() *jackass_t {
 	jackass := new(jackass_t)

@@ -1,4 +1,5 @@
 package jutil
+
 import (
 	"math"
 )
@@ -12,7 +13,7 @@ func ParseFloat(number string) float64 {
 		number = number[1:]
 	}
 
-	sig, other_exponent_sig := 0, 0 // 0 := + , 1 := -
+	sig, other_exponent_sig := 0, 0                      // 0 := + , 1 := -
 	var exponent, other_exponent, mantissa int = 0, 0, 0 // 11 max 52
 
 	if number[0] == '+' {
@@ -35,39 +36,39 @@ func ParseFloat(number string) float64 {
 
 		if !truncated {
 			if !decimal {
-				if (char == '.') {
-					decimal = true;
-				} else if (char == 'e' || char == 'E') {
-					truncated = true;
+				if char == '.' {
+					decimal = true
+				} else if char == 'e' || char == 'E' {
+					truncated = true
 				} else {
-					exponent = (exponent * 10) + valueOf(char);
+					exponent = (exponent * 10) + valueOf(char)
 
 					if FixedBitCount(exponent) > 11 {
-						decimal = true;
+						decimal = true
 					}
 				}
 			} else {
 				if char == 'e' || char == 'E' {
-					truncated = true;
+					truncated = true
 				} else {
-					mantissa = (mantissa * 10) + valueOf(char);
-					decimalPlaces++;
+					mantissa = (mantissa * 10) + valueOf(char)
+					decimalPlaces++
 
 					if FixedBitCount(mantissa) >= 52 {
-						break;
+						break
 					}
 				}
-			} 
+			}
 		} else {
-			if (char == '+') {
-				other_exponent_sig = 0;
+			if char == '+' {
+				other_exponent_sig = 0
 			} else if char == '-' {
-				other_exponent_sig = 1;
+				other_exponent_sig = 1
 			} else {
-				other_exponent = (other_exponent * 10) + valueOf(char);
-	
-				if (FixedBitCount(other_exponent) > 11) {
-					break;
+				other_exponent = (other_exponent * 10) + valueOf(char)
+
+				if FixedBitCount(other_exponent) > 11 {
+					break
 				}
 			}
 		}

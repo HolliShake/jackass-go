@@ -1,18 +1,20 @@
 package main
+
 import (
 	"fmt"
 	"strings"
-	"github.com/jackass/jutil"
-)
 
+	"jackass/jutil"
+	"jackass/shared"
+)
 
 const MAX_ID_LENGTH int = 255
 
 type lexer_t struct {
 	filePath, fileContent string
-	fileLen, index int
-	lookahead rune
-	line, column int
+	fileLen, index        int
+	lookahead             rune
+	line, column          int
 }
 
 func Lexer(filePath, fileContent string) *lexer_t {
@@ -55,29 +57,29 @@ func (l *lexer_t) nextRune() rune {
 	var ord rune = 0
 
 	switch size {
-		case 1:
-			return rune(l.fileContent[l.index])
-		case 2:
-			ord = jutil.Utf_toCodePoint(
-				int(l.fileContent[l.index + 0]),
-				int(l.fileContent[l.index + 1]),
-				0,
-				0,
-			)
-		case 3:
-			ord = jutil.Utf_toCodePoint(
-				int(l.fileContent[l.index + 0]),
-				int(l.fileContent[l.index + 1]),
-				int(l.fileContent[l.index + 2]),
-				0,
-			)
-		case 4:
-			ord = jutil.Utf_toCodePoint(
-				int(l.fileContent[l.index + 0]),
-				int(l.fileContent[l.index + 1]),
-				int(l.fileContent[l.index + 2]),
-				int(l.fileContent[l.index + 3]),
-			)
+	case 1:
+		return rune(l.fileContent[l.index])
+	case 2:
+		ord = jutil.Utf_toCodePoint(
+			int(l.fileContent[l.index+0]),
+			int(l.fileContent[l.index+1]),
+			0,
+			0,
+		)
+	case 3:
+		ord = jutil.Utf_toCodePoint(
+			int(l.fileContent[l.index+0]),
+			int(l.fileContent[l.index+1]),
+			int(l.fileContent[l.index+2]),
+			0,
+		)
+	case 4:
+		ord = jutil.Utf_toCodePoint(
+			int(l.fileContent[l.index+0]),
+			int(l.fileContent[l.index+1]),
+			int(l.fileContent[l.index+2]),
+			int(l.fileContent[l.index+3]),
+		)
 	}
 
 	l.index += (size - 1) // -1 because array index starts at 0
@@ -86,7 +88,7 @@ func (l *lexer_t) nextRune() rune {
 }
 
 func (l *lexer_t) forward() {
-	if (l.lookahead == '\n') {
+	if l.lookahead == '\n' {
 		l.line++
 		l.column = 0
 	} else {
@@ -118,8 +120,7 @@ func (l *lexer_t) isDigit() bool {
 }
 
 func (l *lexer_t) isHex() bool {
-	return (
-		jutil.Utf_isDigit(l.lookahead) ||
+	return (jutil.Utf_isDigit(l.lookahead) ||
 		(l.lookahead >= 'a' && l.lookahead <= 'f') ||
 		(l.lookahead >= 'A' && l.lookahead <= 'F'))
 }
@@ -148,7 +149,7 @@ func (l *lexer_t) skipWhiteSpace() {
 
 func (l *lexer_t) nextIdentifier() *token_t {
 	var value string = ""
-	var pos *position_t = Position(l.line, l.column)
+	var pos *shared.Position_t = shared.Position(l.line, l.column)
 
 	for l.isIdentifierStart() {
 		value += string(l.lookahead)
@@ -161,7 +162,7 @@ func (l *lexer_t) nextIdentifier() *token_t {
 	}
 
 	if len(value) >= MAX_ID_LENGTH {
-		raiseError(l, fmt.Sprintf("identifier \"%s\"(+%dmore)... is too long.", value[0: 30], len(value) - 30), pos)
+		raiseError(l, fmt.Sprintf("identifier \"%s\"(+%dmore)... is too long.", value[0:30], len(value)-30), pos)
 	}
 
 	ttype := TKIND_ID
@@ -175,76 +176,76 @@ func (l *lexer_t) nextIdentifier() *token_t {
 
 func (l *lexer_t) nextNumber() *token_t {
 	var value string = ""
-	var pos *position_t = Position(l.line, l.column)
+	var pos *shared.Position_t = shared.Position(l.line, l.column)
 
-	for l.isDigit() { 
+	for l.isDigit() {
 		value += string(l.lookahead)
 		l.forward()
 	}
 
-	if strings.Compare(value, "0") == 0 { 
+	if strings.Compare(value, "0") == 0 {
 
 		switch l.lookahead {
-			case 'x', 'X':
+		case 'x', 'X':
+			value += string(l.lookahead)
+			l.forward()
+
+			if !l.isHex() {
+				// Error
+				raiseError(l, fmt.Sprintf("incomplete hexadecimal number \"%s\".", value), pos)
+			}
+
+			for l.isHex() {
 				value += string(l.lookahead)
 				l.forward()
+			}
 
-				if !l.isHex() {
-					// Error
-					raiseError(l, fmt.Sprintf("incomplete hexadecimal number \"%s\".", value), pos)
-				}
+			if l.lookahead == 'n' || l.lookahead == 'N' {
+				l.forward()
+				return Token(TKIND_OTHER_BIG_INTEGER, value, pos)
+			} else {
+				return Token(TKIND_OTHER_INTEGER, value, pos)
+			}
+		case 'b', 'B':
+			value += string(l.lookahead)
+			l.forward()
 
-				for l.isHex() {
-					value += string(l.lookahead)
-					l.forward()
-				}
+			if !l.isBin() {
+				// Error
+				raiseError(l, fmt.Sprintf("incomplete binary number \"%s\".", value), pos)
+			}
 
-				if l.lookahead == 'n' || l.lookahead == 'N' {
-					l.forward()
-					return Token(TKIND_OTHER_BIG_INTEGER, value, pos)
-				} else {
-					return Token(TKIND_OTHER_INTEGER, value, pos)
-				}
-			case 'b', 'B':
+			for l.isBin() {
 				value += string(l.lookahead)
 				l.forward()
+			}
 
-				if !l.isBin() {
-					// Error
-					raiseError(l, fmt.Sprintf("incomplete binary number \"%s\".", value), pos)
-				}
+			if l.lookahead == 'n' || l.lookahead == 'N' {
+				l.forward()
+				return Token(TKIND_OTHER_BIG_INTEGER, value, pos)
+			} else {
+				return Token(TKIND_OTHER_INTEGER, value, pos)
+			}
+		case 'o', 'O':
+			value += string(l.lookahead)
+			l.forward()
 
-				for l.isBin() {
-					value += string(l.lookahead)
-					l.forward()
-				}
+			if !l.isOct() {
+				// Error
+				raiseError(l, fmt.Sprintf("incomplete octal number \"%s\".", value), pos)
+			}
 
-				if l.lookahead == 'n' || l.lookahead == 'N' {
-					l.forward()
-					return Token(TKIND_OTHER_BIG_INTEGER, value, pos)
-				} else {
-					return Token(TKIND_OTHER_INTEGER, value, pos)
-				}
-			case 'o', 'O':
+			for l.isOct() {
 				value += string(l.lookahead)
 				l.forward()
+			}
 
-				if !l.isOct() {
-					// Error
-					raiseError(l, fmt.Sprintf("incomplete octal number \"%s\".", value), pos)
-				}
-
-				for l.isOct() {
-					value += string(l.lookahead)
-					l.forward()
-				}
-
-				if l.lookahead == 'n' || l.lookahead == 'N' {
-					l.forward()
-					return Token(TKIND_OTHER_BIG_INTEGER, value, pos)
-				} else {
-					return Token(TKIND_OTHER_INTEGER, value, pos)
-				}
+			if l.lookahead == 'n' || l.lookahead == 'N' {
+				l.forward()
+				return Token(TKIND_OTHER_BIG_INTEGER, value, pos)
+			} else {
+				return Token(TKIND_OTHER_INTEGER, value, pos)
+			}
 		}
 	}
 
@@ -253,9 +254,9 @@ func (l *lexer_t) nextNumber() *token_t {
 	if l.lookahead == 'n' || l.lookahead == 'N' {
 		l.forward()
 		return Token(TKIND_BIG_INTEGER, value, pos)
-	} 
+	}
 
-	if l.lookahead == '.' { 
+	if l.lookahead == '.' {
 		value += string(l.lookahead)
 		l.forward()
 
@@ -272,7 +273,7 @@ func (l *lexer_t) nextNumber() *token_t {
 		ttype = TKIND_FLOAT
 	}
 
-	if l.lookahead == 'e' || l.lookahead == 'E' { 
+	if l.lookahead == 'e' || l.lookahead == 'E' {
 		value += "e"
 		l.forward()
 
@@ -297,17 +298,17 @@ func (l *lexer_t) nextNumber() *token_t {
 	return Token(ttype, value, pos)
 }
 
-func (l * lexer_t) nextString() *token_t {
+func (l *lexer_t) nextString() *token_t {
 	var value string = ""
-	var pos *position_t = Position(l.line, l.column)
+	var pos *shared.Position_t = shared.Position(l.line, l.column)
 	var isopen, isclose bool = l.isString(), false
 	openner := l.lookahead
 
 	l.forward()
 	isclose = l.isString() && l.lookahead == openner
 
-	loop:
-	for !l.isEof() && (isopen && !isclose) { 
+loop:
+	for !l.isEof() && (isopen && !isclose) {
 		if l.lookahead == '\n' {
 			break loop
 		}
@@ -315,31 +316,30 @@ func (l * lexer_t) nextString() *token_t {
 		if l.lookahead == '\\' {
 			l.forward()
 
-			switch l.lookahead { 
-				case 'b':
-					value += "\b"
-					
-				case 'n':
-					value += "\n"
-					
-				case 't':
-					value += "\t"
-					
-				case 'r':
-					value += "\r"
-					
-				case 'f':
-					value += "\f"
-					
+			switch l.lookahead {
+			case 'b':
+				value += "\b"
 
-				case '"':
-					value += "\""
-					
-				case '\'':
-					value += "'"
-					
-				default:
-					value += string(l.lookahead)
+			case 'n':
+				value += "\n"
+
+			case 't':
+				value += "\t"
+
+			case 'r':
+				value += "\r"
+
+			case 'f':
+				value += "\f"
+
+			case '"':
+				value += "\""
+
+			case '\'':
+				value += "'"
+
+			default:
+				value += string(l.lookahead)
 			}
 		} else {
 			value += string(l.lookahead)
@@ -363,168 +363,168 @@ func (l * lexer_t) nextString() *token_t {
 
 func (l *lexer_t) nextSymbol() *token_t {
 	var value string = ""
-	var pos *position_t = Position(l.line, l.column)
+	var pos *shared.Position_t = shared.Position(l.line, l.column)
 
 	switch l.lookahead {
-		case '(', ')', '[', ']', '{', '}', '~', ':', ';', ',':
+	case '(', ')', '[', ']', '{', '}', '~', ':', ';', ',':
+		value += string(l.lookahead)
+		l.forward()
+
+	case '?':
+		value += string(l.lookahead)
+		l.forward()
+
+		if l.lookahead == '?' {
 			value += string(l.lookahead)
 			l.forward()
-			
-		case '?':
+		}
+
+	case '.':
+		value += string(l.lookahead)
+		l.forward()
+
+		if l.lookahead == '.' {
 			value += string(l.lookahead)
 			l.forward()
 
-			if l.lookahead == '?' { 
+			if l.lookahead == '.' {
 				value += string(l.lookahead)
 				l.forward()
+			} else {
+				raiseError(l, fmt.Sprintf("invalid symbol \"%s\".", value), pos)
 			}
-			
-		case '.':
+		}
+
+	case '*':
+		value += string(l.lookahead)
+		l.forward()
+
+		if l.lookahead == '=' {
 			value += string(l.lookahead)
 			l.forward()
+		}
 
-			if l.lookahead == '.' { 
-				value += string(l.lookahead)
-				l.forward()
+	case '/':
+		value += string(l.lookahead)
+		l.forward()
 
-				if l.lookahead == '.' { 
-					value += string(l.lookahead)
-					l.forward()
-				} else {
-					raiseError(l, fmt.Sprintf("invalid symbol \"%s\".", value), pos)
-				}
-			}
-			
-		case '*':
+		if l.lookahead == '=' {
 			value += string(l.lookahead)
 			l.forward()
+		}
 
-			if l.lookahead == '=' {
-				value += string(l.lookahead)
-				l.forward()
-			}
-			
-		case '/':
+	case '%':
+		value += string(l.lookahead)
+		l.forward()
+
+		if l.lookahead == '=' {
 			value += string(l.lookahead)
 			l.forward()
+		}
 
-			if l.lookahead == '=' {
-				value += string(l.lookahead)
-				l.forward()
-			}
-			
-		case '%':
+	case '+':
+		value += string(l.lookahead)
+		l.forward()
+
+		if l.lookahead == '+' {
 			value += string(l.lookahead)
 			l.forward()
-
-			if l.lookahead == '=' {
-				value += string(l.lookahead)
-				l.forward()
-			}
-			
-		case '+':
+		} else if l.lookahead == '=' {
 			value += string(l.lookahead)
 			l.forward()
+		}
 
-			if l.lookahead == '+' {
-				value += string(l.lookahead)
-				l.forward()
-			} else if l.lookahead == '=' {
-				value += string(l.lookahead)
-				l.forward()
-			}
-			
-		case '-':
+	case '-':
+		value += string(l.lookahead)
+		l.forward()
+
+		if l.lookahead == '-' {
 			value += string(l.lookahead)
 			l.forward()
-
-			if l.lookahead == '-' {
-				value += string(l.lookahead)
-				l.forward()
-			} else if l.lookahead == '=' {
-				value += string(l.lookahead)
-				l.forward()
-			}
-			
-		case '<':
+		} else if l.lookahead == '=' {
 			value += string(l.lookahead)
 			l.forward()
+		}
 
-			if l.lookahead == '<' {
-				value += string(l.lookahead)
-				l.forward()
-			} 
-			
-			if l.lookahead == '=' {
-				value += string(l.lookahead)
-				l.forward()
-			}
-			
-		case '>':
+	case '<':
+		value += string(l.lookahead)
+		l.forward()
+
+		if l.lookahead == '<' {
 			value += string(l.lookahead)
 			l.forward()
+		}
 
-			if l.lookahead == '>' {
-				value += string(l.lookahead)
-				l.forward()
-			} 
-			
-			if l.lookahead == '=' {
-				value += string(l.lookahead)
-				l.forward()
-			}
-			
-		case '&':
+		if l.lookahead == '=' {
 			value += string(l.lookahead)
 			l.forward()
+		}
 
-			if l.lookahead == '&' {
-				value += string(l.lookahead)
-				l.forward()
-			} else if l.lookahead == '=' {
-				value += string(l.lookahead)
-				l.forward()
-			}
-			
-		case '|':
+	case '>':
+		value += string(l.lookahead)
+		l.forward()
+
+		if l.lookahead == '>' {
 			value += string(l.lookahead)
 			l.forward()
+		}
 
-			if l.lookahead == '|' {
-				value += string(l.lookahead)
-				l.forward()
-			} else if l.lookahead == '=' {
-				value += string(l.lookahead)
-				l.forward()
-			}
-			
-		case '^':
+		if l.lookahead == '=' {
 			value += string(l.lookahead)
 			l.forward()
+		}
 
-			if l.lookahead == '=' {
-				value += string(l.lookahead)
-				l.forward()
-			}
-			
-		case '=':
+	case '&':
+		value += string(l.lookahead)
+		l.forward()
+
+		if l.lookahead == '&' {
 			value += string(l.lookahead)
 			l.forward()
-
-			if l.lookahead == '=' {
-				value += string(l.lookahead)
-				l.forward()
-			}
-			
-		case '!': 
+		} else if l.lookahead == '=' {
 			value += string(l.lookahead)
 			l.forward()
+		}
 
-			if l.lookahead == '=' {
-				value += string(l.lookahead)
-				l.forward()
-			}
-			
+	case '|':
+		value += string(l.lookahead)
+		l.forward()
+
+		if l.lookahead == '|' {
+			value += string(l.lookahead)
+			l.forward()
+		} else if l.lookahead == '=' {
+			value += string(l.lookahead)
+			l.forward()
+		}
+
+	case '^':
+		value += string(l.lookahead)
+		l.forward()
+
+		if l.lookahead == '=' {
+			value += string(l.lookahead)
+			l.forward()
+		}
+
+	case '=':
+		value += string(l.lookahead)
+		l.forward()
+
+		if l.lookahead == '=' {
+			value += string(l.lookahead)
+			l.forward()
+		}
+
+	case '!':
+		value += string(l.lookahead)
+		l.forward()
+
+		if l.lookahead == '=' {
+			value += string(l.lookahead)
+			l.forward()
+		}
+
 	}
 
 	if len(value) <= 0 {
@@ -539,7 +539,7 @@ func (l *lexer_t) nextSymbol() *token_t {
 }
 
 func (l *lexer_t) nextEof() *token_t {
-	return Token(TKIND_EOF, "[eof]", Position(l.line, l.column))
+	return Token(TKIND_EOF, "[eof]", shared.Position(l.line, l.column))
 }
 
 func (l *lexer_t) nextToken() *token_t {
@@ -556,7 +556,7 @@ func (l *lexer_t) nextToken() *token_t {
 			return l.nextSymbol()
 		}
 	}
-	
+
 	return l.nextEof()
 }
 
