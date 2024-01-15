@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"jackass/ast"
-	"jackass/jutil"
+	"jackass/util"
 )
 
 type analyzer_t struct {
@@ -82,7 +82,7 @@ func (a *analyzer_t) analyzeID(node *ast.Node_t) *ast.Node_t {
 }
 
 func (a *analyzer_t) analyzeInteger(node *ast.Node_t) *ast.Node_t {
-	node.Terminal.Value = fmt.Sprintf("%d", jutil.ParseInt(node.Terminal.Value))
+	node.Terminal.Value = fmt.Sprintf("%d", util.ParseInt(node.Terminal.Value))
 	return node
 }
 
@@ -91,11 +91,11 @@ func (a *analyzer_t) analyzeOtherInteger(node *ast.Node_t) *ast.Node_t {
 	node.NodeType = ast.NT_INTEGER
 	switch node.Terminal.Value[0:2] {
 	case "0x", "0X":
-		node.Terminal.Value = fmt.Sprintf("%d", jutil.Parse(node.Terminal.Value, 16))
+		node.Terminal.Value = fmt.Sprintf("%d", util.Parse(node.Terminal.Value, 16))
 	case "0o", "0O":
-		node.Terminal.Value = fmt.Sprintf("%d", jutil.Parse(node.Terminal.Value, 8))
+		node.Terminal.Value = fmt.Sprintf("%d", util.Parse(node.Terminal.Value, 8))
 	case "0b", "0B":
-		node.Terminal.Value = fmt.Sprintf("%d", jutil.Parse(node.Terminal.Value, 2))
+		node.Terminal.Value = fmt.Sprintf("%d", util.Parse(node.Terminal.Value, 2))
 	default:
 		panic(fmt.Sprintf("invalid number format %s!!!", node.Terminal.Value))
 	}
@@ -111,19 +111,19 @@ func (a *analyzer_t) analyzeOtherBigInteger(node *ast.Node_t) *ast.Node_t {
 }
 
 func (a *analyzer_t) analyzeFloat(node *ast.Node_t) *ast.Node_t {
-	node.Terminal.Value = fmt.Sprintf("%f", jutil.ParseFloat(node.Terminal.Value))
+	node.Terminal.Value = fmt.Sprintf("%f", util.ParseFloat(node.Terminal.Value))
 	return node
 }
 
 func (a *analyzer_t) analyzeOtherFloat(node *ast.Node_t) *ast.Node_t {
 	// change to float node
 	node.NodeType = ast.NT_FLOAT
-	node.Terminal.Value = fmt.Sprintf("%f", jutil.ParseFloat(node.Terminal.Value))
+	node.Terminal.Value = fmt.Sprintf("%f", util.ParseFloat(node.Terminal.Value))
 	return node
 }
 
 func (a *analyzer_t) analyzeString(node *ast.Node_t) *ast.Node_t {
-	if jutil.Utf_codePointLength(node.Terminal.Value) > int(jutil.MAX_SAFE_INDEX) {
+	if util.Utf_codePointLength(node.Terminal.Value) > int(util.MAX_SAFE_INDEX) {
 		raiseError(a, "string length is too large to represent", node.Position)
 	}
 	return node

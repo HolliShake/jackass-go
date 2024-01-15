@@ -1,4 +1,4 @@
-package jutil
+package util
 
 import (
 	"math"

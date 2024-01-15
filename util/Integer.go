@@ -1,4 +1,5 @@
-package jutil
+package util
+
 import (
 	"fmt"
 	"math"
@@ -14,7 +15,7 @@ func ParseInt(number string) int {
 		number = number[1:]
 	}
 
-	sig := 0 // 0 := + , 1 := -
+	sig := 0          // 0 := + , 1 := -
 	var value int = 0 // max 64 bit signed
 
 	if number[0] == '+' {
@@ -42,7 +43,7 @@ func ParseInt(number string) int {
 }
 
 func ParseHex(number string) int {
-	sig := 0 // 0 := + , 1 := -
+	sig := 0          // 0 := + , 1 := -
 	var value int = 0 // max 64 bit signed
 
 	if number[0] == '+' {
@@ -58,7 +59,7 @@ func ParseHex(number string) int {
 	} else {
 		panic(fmt.Sprintf("invalid number format %s!!!", number))
 	}
-	
+
 	for i := 0; i < len(number); i++ {
 		charint := valueOf(number[i])
 		value = (value * 16) + charint
@@ -76,7 +77,7 @@ func ParseHex(number string) int {
 }
 
 func ParseOct(number string) int {
-	sig := 0 // 0 := + , 1 := -
+	sig := 0          // 0 := + , 1 := -
 	var value int = 0 // max 64 bit signed
 
 	if number[0] == '+' {
@@ -92,7 +93,7 @@ func ParseOct(number string) int {
 	} else {
 		panic(fmt.Sprintf("invalid number format %s!!!", number))
 	}
-	
+
 	for i := 0; i < len(number); i++ {
 		charint := valueOf(number[i])
 		value = (value * 8) + charint
@@ -110,7 +111,7 @@ func ParseOct(number string) int {
 }
 
 func ParseBin(number string) int {
-	sig := 0 // 0 := + , 1 := -
+	sig := 0          // 0 := + , 1 := -
 	var value int = 0 // max 64 bit signed
 
 	if number[0] == '+' {
@@ -126,7 +127,7 @@ func ParseBin(number string) int {
 	} else {
 		panic(fmt.Sprintf("invalid number format %s!!!", number))
 	}
-	
+
 	for i := 0; i < len(number); i++ {
 		charint := valueOf(number[i])
 		value = (value * 2) + charint
@@ -145,14 +146,14 @@ func ParseBin(number string) int {
 
 func Parse(number string, base int) int {
 	switch base {
-		case 10:
-			return ParseInt(number)
-		case 16:
-			return ParseHex(number)
-		case 8:
-			return ParseOct(number)
-		case 2:
-			return ParseBin(number)
+	case 10:
+		return ParseInt(number)
+	case 16:
+		return ParseHex(number)
+	case 8:
+		return ParseOct(number)
+	case 2:
+		return ParseBin(number)
 	}
 	panic(fmt.Sprintf("invalid integer base %d!!!", base))
 }

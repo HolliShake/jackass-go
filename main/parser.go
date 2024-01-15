@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"jackass/ast"
-	"jackass/jutil"
+	"jackass/util"
 )
 
 const (
@@ -298,7 +298,7 @@ func (p *parser_t) parseGroup() *ast.Node_t {
 				*elements = append(*elements, elementN)
 				count++
 
-				if count >= int(jutil.MAX_SAFE_INDEX) {
+				if count >= int(util.MAX_SAFE_INDEX) {
 					break
 				}
 			}
@@ -340,7 +340,7 @@ func (p *parser_t) parseGroup() *ast.Node_t {
 				*pairs = append(*pairs, []*ast.Node_t{keyN, valueN})
 				count++
 
-				if count >= int(jutil.MAX_SAFE_INDEX) {
+				if count >= int(util.MAX_SAFE_INDEX) {
 					break
 				}
 			}

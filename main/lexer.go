@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"jackass/jutil"
 	"jackass/shared"
+	"jackass/util"
 )
 
 const MAX_ID_LENGTH int = 255
@@ -48,7 +48,7 @@ func (l *lexer_t) nextRune() rune {
 		return rune(0)
 	}
 
-	size := jutil.Utf_sizeOfUtf(int(l.fileContent[l.index]))
+	size := util.Utf_sizeOfUtf(int(l.fileContent[l.index]))
 
 	if (l.index + (size - 1)) >= l.fileLen {
 		return rune(l.fileContent[l.index])
@@ -60,21 +60,21 @@ func (l *lexer_t) nextRune() rune {
 	case 1:
 		return rune(l.fileContent[l.index])
 	case 2:
-		ord = jutil.Utf_toCodePoint(
+		ord = util.Utf_toCodePoint(
 			int(l.fileContent[l.index+0]),
 			int(l.fileContent[l.index+1]),
 			0,
 			0,
 		)
 	case 3:
-		ord = jutil.Utf_toCodePoint(
+		ord = util.Utf_toCodePoint(
 			int(l.fileContent[l.index+0]),
 			int(l.fileContent[l.index+1]),
 			int(l.fileContent[l.index+2]),
 			0,
 		)
 	case 4:
-		ord = jutil.Utf_toCodePoint(
+		ord = util.Utf_toCodePoint(
 			int(l.fileContent[l.index+0]),
 			int(l.fileContent[l.index+1]),
 			int(l.fileContent[l.index+2]),
@@ -104,23 +104,23 @@ func (l *lexer_t) forward() {
 }
 
 func (l *lexer_t) isWhiteSpace() bool {
-	return jutil.Utf_isWhiteSpace(l.lookahead)
+	return util.Utf_isWhiteSpace(l.lookahead)
 }
 
 func (l *lexer_t) isIdentifierStart() bool {
-	return jutil.Utf_isLetter(l.lookahead)
+	return util.Utf_isLetter(l.lookahead)
 }
 
 func (l *lexer_t) isIdentifierPart() bool {
-	return jutil.Utf_isLetterOrDigit(l.lookahead)
+	return util.Utf_isLetterOrDigit(l.lookahead)
 }
 
 func (l *lexer_t) isDigit() bool {
-	return jutil.Utf_isDigit(l.lookahead)
+	return util.Utf_isDigit(l.lookahead)
 }
 
 func (l *lexer_t) isHex() bool {
-	return (jutil.Utf_isDigit(l.lookahead) ||
+	return (util.Utf_isDigit(l.lookahead) ||
 		(l.lookahead >= 'a' && l.lookahead <= 'f') ||
 		(l.lookahead >= 'A' && l.lookahead <= 'F'))
 }
